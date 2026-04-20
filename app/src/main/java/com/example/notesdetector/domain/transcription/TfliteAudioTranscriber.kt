@@ -20,7 +20,7 @@ import kotlin.math.sin
 
 class TfliteAudioTranscriber(
     private val context: Context,
-    private val modelAssetPath: String = "guitar_crnn_onsets_frames_2.tflite"
+    private val modelAssetPath: String = "guitar_model.tflite"
 ) {
 
     companion object {
@@ -30,8 +30,8 @@ class TfliteAudioTranscriber(
         private const val CQT_BINS = 84
         private const val NUM_NOTES = 49
         private const val MIN_MIDI = 40
-        private const val ONSET_THRESHOLD = 0.3f
-        private const val FRAME_THRESHOLD = 0.15f
+        private const val ONSET_THRESHOLD = 0.6f
+        private const val FRAME_THRESHOLD = 0.5f
     }
 
     suspend fun transcribe(audioUri: Uri): String {
@@ -181,11 +181,14 @@ class TfliteAudioTranscriber(
                 val isLastFrame = t == pianoRoll.lastIndex
                 if ((!active || isLastFrame) && startFrame != -1) {
                     val endFrame = if (active && isLastFrame) t else t - 1
-                    val startSec = (startFrame * HOP_LENGTH) / SR.toFloat()
-                    val endSec = ((endFrame + 1) * HOP_LENGTH) / SR.toFloat()
-                    val midi = MIN_MIDI + noteIdx
-                    events += "${midiToName(midi)} ${"%.2f".format(startSec)}s-${"%.2f".format(endSec)}s"
-                    startFrame = -1
+                    val durationFrames = endFrame - startFrame
+                    if (durationFrames > 3) { // Ігноруємо все, що коротше за 3 кадри (~70мс)
+                        val startSec = (startFrame * HOP_LENGTH) / SR.toFloat()
+                        val endSec = ((endFrame + 1) * HOP_LENGTH) / SR.toFloat()
+                        val midi = MIN_MIDI + noteIdx
+                        events += "${midiToName(midi)} ${"%.2f".format(startSec)}s-${"%.2f".format(endSec)}s"
+                        startFrame = -1
+                    }
                 }
             }
         }
@@ -235,7 +238,7 @@ class TfliteAudioTranscriber(
 
         for (frame in features.indices) {
             for (bin in 0 until CQT_BINS) {
-                val db = 20f * ln(max(features[frame][bin], 1e-8f)) / ln(10f)
+                val db = 20f * ln(max(features[frame][bin], 1e-5f)) / ln(10f)
                 val normalized = ((db + 80f) / 80f).coerceIn(0f, 1f)
                 features[frame][bin] = normalized
             }
