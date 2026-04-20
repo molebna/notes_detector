@@ -32,7 +32,9 @@ class TfliteAudioTranscriber(
         private const val MIN_MIDI = 40
         private const val ONSET_THRESHOLD = 0.3f
         private const val FRAME_THRESHOLD = 0.15f
-        private const val MIN_NOTE_FRAMES = 3
+        private const val MIN_NOTE_FRAMES = 6
+        private const val NOTE_COOLDOWN_FRAMES = 6
+        private const val ONSET_PEAK_WINDOW = 2
     }
 
     suspend fun transcribe(audioUri: Uri): String {
@@ -165,13 +167,21 @@ class TfliteAudioTranscriber(
 
         for (noteIdx in 0 until NUM_NOTES) {
             var isNoteActive = false
+            var lastAcceptedOnsetFrame = -NOTE_COOLDOWN_FRAMES
+
             for (t in 0 until totalFrames) {
+                val onsetValue = fullOnsets[t][noteIdx]
+                val isOnsetPeak = onsetValue > ONSET_THRESHOLD &&
+                    isLocalPeak(fullOnsets, noteIdx, t, ONSET_PEAK_WINDOW) &&
+                    (t - lastAcceptedOnsetFrame) >= NOTE_COOLDOWN_FRAMES
+
                 when {
-                    fullOnsets[t][noteIdx] > ONSET_THRESHOLD -> {
+                    isOnsetPeak -> {
                         if (isNoteActive && t > 0) {
                             finalPianoRoll[t - 1][noteIdx] = 0
                         }
                         isNoteActive = true
+                        lastAcceptedOnsetFrame = t
                         finalPianoRoll[t][noteIdx] = 1
                     }
 
@@ -187,6 +197,25 @@ class TfliteAudioTranscriber(
         }
 
         return finalPianoRoll
+    }
+
+    private fun isLocalPeak(
+        fullOnsets: Array<FloatArray>,
+        noteIdx: Int,
+        centerFrame: Int,
+        window: Int
+    ): Boolean {
+        val centerValue = fullOnsets[centerFrame][noteIdx]
+        val left = max(0, centerFrame - window)
+        val right = min(fullOnsets.lastIndex, centerFrame + window)
+
+        for (frame in left..right) {
+            if (frame != centerFrame && fullOnsets[frame][noteIdx] > centerValue) {
+                return false
+            }
+        }
+
+        return true
     }
 
     private fun noteEventsFromPianoRoll(pianoRoll: Array<IntArray>): String {
