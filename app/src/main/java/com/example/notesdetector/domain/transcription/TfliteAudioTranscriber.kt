@@ -20,7 +20,7 @@ import kotlin.math.sin
 
 class TfliteAudioTranscriber(
     private val context: Context,
-    private val modelAssetPath: String = "guitar_crnn_onsets_frames_2.tflite"
+    private val modelAssetPath: String = "guitar_model.tflite"
 ) {
 
     companion object {
