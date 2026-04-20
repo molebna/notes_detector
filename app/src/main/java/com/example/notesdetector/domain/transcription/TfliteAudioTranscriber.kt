@@ -30,8 +30,9 @@ class TfliteAudioTranscriber(
         private const val CQT_BINS = 84
         private const val NUM_NOTES = 49
         private const val MIN_MIDI = 40
-        private const val ONSET_THRESHOLD = 0.6f
-        private const val FRAME_THRESHOLD = 0.5f
+        private const val ONSET_THRESHOLD = 0.3f
+        private const val FRAME_THRESHOLD = 0.15f
+        private const val MIN_NOTE_FRAMES = 3
     }
 
     suspend fun transcribe(audioUri: Uri): String {
@@ -90,48 +91,69 @@ class TfliteAudioTranscriber(
         val outputTensorNames = (0 until interpreter.outputTensorCount)
             .associateWith { index -> interpreter.getOutputTensor(index).name().lowercase() }
 
-        val onsetIndex = outputTensorNames.entries
+        var onsetIndex = outputTensorNames.entries
             .firstOrNull { it.value.contains("onset") }
-            ?.key ?: 1
-        val frameIndex = outputTensorNames.entries
+            ?.key
+        var frameIndex = outputTensorNames.entries
             .firstOrNull { it.value.contains("frame") }
-            ?.key ?: 0
+            ?.key
 
-        var start = 0
-        while (start < totalFrames) {
-            val segment = Array(SEGMENT_W) { frameOffset ->
-                val frameIndexInSource = min(start + frameOffset, totalFrames - 1)
-                cqtNorm[frameIndexInSource]
-            }
+        val segmentStarts = if (totalFrames <= SEGMENT_W) {
+            listOf(0)
+        } else {
+            (0 until (totalFrames - SEGMENT_W) step SEGMENT_W).toList()
+        }
 
+        for (start in segmentStarts) {
             val input = Array(1) { Array(SEGMENT_W) { Array(CQT_BINS) { FloatArray(1) } } }
             for (t in 0 until SEGMENT_W) {
+                val sourceFrame = min(start + t, totalFrames - 1)
                 for (f in 0 until CQT_BINS) {
-                    input[0][t][f][0] = segment[t][f]
+                    input[0][t][f][0] = cqtNorm[sourceFrame][f]
                 }
             }
 
-            val outputFrames = Array(1) { Array(SEGMENT_W) { FloatArray(NUM_NOTES) } }
-            val outputOnsets = Array(1) { Array(SEGMENT_W) { FloatArray(NUM_NOTES) } }
-
+            val output0 = Array(1) { Array(SEGMENT_W) { FloatArray(NUM_NOTES) } }
+            val output1 = Array(1) { Array(SEGMENT_W) { FloatArray(NUM_NOTES) } }
             interpreter.runForMultipleInputsOutputs(
                 arrayOf(input),
                 mapOf(
-                    frameIndex to outputFrames,
-                    onsetIndex to outputOnsets
+                    0 to output0,
+                    1 to output1
                 )
             )
 
-            val writeLength = min(SEGMENT_W, totalFrames - start)
-            for (t in 0 until writeLength) {
-                System.arraycopy(outputFrames[0][t], 0, fullFrames[start + t], 0, NUM_NOTES)
-                System.arraycopy(outputOnsets[0][t], 0, fullOnsets[start + t], 0, NUM_NOTES)
+            if (onsetIndex == null || frameIndex == null) {
+                val mean0 = tensorMean(output0)
+                val mean1 = tensorMean(output1)
+                onsetIndex = if (mean0 < mean1) 0 else 1
+                frameIndex = if (onsetIndex == 0) 1 else 0
             }
 
-            start += SEGMENT_W
+            val predictedFrames = if (frameIndex == 0) output0 else output1
+            val predictedOnsets = if (onsetIndex == 0) output0 else output1
+
+            for (t in 0 until SEGMENT_W) {
+                val target = start + t
+                if (target >= totalFrames) break
+                System.arraycopy(predictedFrames[0][t], 0, fullFrames[target], 0, NUM_NOTES)
+                System.arraycopy(predictedOnsets[0][t], 0, fullOnsets[target], 0, NUM_NOTES)
+            }
         }
 
         return fullFrames to fullOnsets
+    }
+
+    private fun tensorMean(tensor: Array<Array<FloatArray>>): Float {
+        var sum = 0f
+        var count = 0
+        for (t in tensor[0].indices) {
+            for (n in tensor[0][t].indices) {
+                sum += tensor[0][t][n]
+                count++
+            }
+        }
+        return if (count == 0) 0f else sum / count
     }
 
     private fun applyOnsetFrameLogic(
@@ -181,14 +203,14 @@ class TfliteAudioTranscriber(
                 val isLastFrame = t == pianoRoll.lastIndex
                 if ((!active || isLastFrame) && startFrame != -1) {
                     val endFrame = if (active && isLastFrame) t else t - 1
-                    val durationFrames = endFrame - startFrame
-                    if (durationFrames > 3) { // Ігноруємо все, що коротше за 3 кадри (~70мс)
-                        val startSec = (startFrame * HOP_LENGTH) / SR.toFloat()
-                        val endSec = ((endFrame + 1) * HOP_LENGTH) / SR.toFloat()
+                    val startSec = (startFrame * HOP_LENGTH) / SR.toFloat()
+                    val endSec = ((endFrame + 1) * HOP_LENGTH) / SR.toFloat()
+                    val noteFrames = endFrame - startFrame + 1
+                    if (noteFrames >= MIN_NOTE_FRAMES) {
                         val midi = MIN_MIDI + noteIdx
                         events += "${midiToName(midi)} ${"%.2f".format(startSec)}s-${"%.2f".format(endSec)}s"
-                        startFrame = -1
                     }
+                    startFrame = -1
                 }
             }
         }
@@ -238,7 +260,7 @@ class TfliteAudioTranscriber(
 
         for (frame in features.indices) {
             for (bin in 0 until CQT_BINS) {
-                val db = 20f * ln(max(features[frame][bin], 1e-5f)) / ln(10f)
+                val db = 20f * ln(max(features[frame][bin], 1e-8f)) / ln(10f)
                 val normalized = ((db + 80f) / 80f).coerceIn(0f, 1f)
                 features[frame][bin] = normalized
             }
