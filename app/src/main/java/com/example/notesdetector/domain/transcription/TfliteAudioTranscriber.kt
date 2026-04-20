@@ -14,7 +14,7 @@ import kotlin.math.min
 
 class TfliteAudioTranscriber(
     private val context: Context,
-    private val modelAssetPath: String = "speech_to_text.tflite",
+    private val modelAssetPath: String = "guitar_model.tflite",
     private val labelsAssetPath: String = "tokens.txt"
 ) {
 
