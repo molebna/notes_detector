@@ -19,7 +19,7 @@ import kotlin.math.pow
 
 class TfliteAudioTranscriber(
     private val context: Context,
-    private val modelAssetPath: String = "guitar_crnn_onsets_frames_2.tflite"
+    private val modelAssetPath: String = "guitar_model.tflite"
 ) {
 
     companion object {
@@ -29,8 +29,8 @@ class TfliteAudioTranscriber(
         private const val CQT_BINS = 84
         private const val NUM_NOTES = 49
         private const val MIN_MIDI = 40
-        private const val ONSET_THRESHOLD = 0.3f
-        private const val FRAME_THRESHOLD = 0.15f
+        private const val ONSET_THRESHOLD = 0.1f
+        private const val FRAME_THRESHOLD = 0.3f
     }
 
     suspend fun transcribe(audioUri: Uri): String {
@@ -85,14 +85,24 @@ class TfliteAudioTranscriber(
         val fullFrames = Array(totalFrames) { FloatArray(NUM_NOTES) }
         val fullOnsets = Array(totalFrames) { FloatArray(NUM_NOTES) }
 
-        val segmentStarts = (0 until (totalFrames - SEGMENT_W).coerceAtLeast(0) step SEGMENT_W).toList()
+        val step = SEGMENT_W
+        val segmentStarts = (0 until totalFrames step step)
 
         for (start in segmentStarts) {
+
             val input = Array(1) { Array(SEGMENT_W) { Array(CQT_BINS) { FloatArray(1) } } }
+
             for (t in 0 until SEGMENT_W) {
                 val sourceFrame = start + t
+
+                val frame = if (sourceFrame < totalFrames) {
+                    cqtNorm[sourceFrame]
+                } else {
+                    FloatArray(CQT_BINS) { 0f } // padding
+                }
+
                 for (f in 0 until CQT_BINS) {
-                    input[0][t][f][0] = cqtNorm[sourceFrame][f]
+                    input[0][t][f][0] = frame[f]
                 }
             }
 

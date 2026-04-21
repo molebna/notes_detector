@@ -15,7 +15,7 @@ navigationUiKtx = "2.9.7"
 legacySupportV4 = "1.0.0"
 fragmentKtx = "1.8.8"
 tensorflowLite = "2.16.1"
-tarsosDsp = "2.4-1"
+tarsosDsp = "2.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
