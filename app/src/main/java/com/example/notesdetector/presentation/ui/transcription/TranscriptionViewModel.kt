@@ -1,7 +1,49 @@
 package com.example.notesdetector.presentation.ui.transcription
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.notesdetector.domain.transcription.TfliteAudioTranscriber
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class TranscriptionViewModel : ViewModel() {
-    // TODO: Implement the ViewModel
+class TranscriptionViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val transcriber = TfliteAudioTranscriber(application.applicationContext)
+
+    private val _uiState = MutableStateFlow(TranscriptionUiState())
+    val uiState: StateFlow<TranscriptionUiState> = _uiState.asStateFlow()
+
+    fun setAudioUri(uri: String) {
+        if (_uiState.value.selectedAudioUri == uri) return
+        _uiState.update { it.copy(selectedAudioUri = uri, transcription = "", errorMessage = null) }
+    }
+
+    fun transcribeSelectedAudio() {
+        val uri = _uiState.value.selectedAudioUri ?: return
+        transcribe(Uri.parse(uri))
+    }
+
+    private fun transcribe(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, transcription = "") }
+            val result = runCatching { transcriber.transcribe(uri) }
+            _uiState.update { state ->
+                result.fold(
+                    onSuccess = { state.copy(isLoading = false, transcription = it) },
+                    onFailure = {
+                        state.copy(
+                            isLoading = false,
+                            errorMessage = it.message ?: "Transcription failed"
+                        )
+                    }
+                )
+            }
+        }
+    }
 }
