@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.select.tf.ops)
+    implementation(libs.tarsos.dsp)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
