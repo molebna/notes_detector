@@ -22,6 +22,8 @@ class TfliteAudioTranscriber(
     private val modelAssetPath: String = "guitar_crnn_onsets_frames_2.tflite"
 ) {
 
+    private var cqtLatencySeconds: Float = 0f
+
     companion object {
         private const val SR = 22_050
         private const val HOP_LENGTH = 512
@@ -165,8 +167,10 @@ class TfliteAudioTranscriber(
                 val isLastFrame = t == pianoRoll.lastIndex
                 if ((!active || isLastFrame) && startFrame != -1) {
                     val endFrame = if (active && isLastFrame) t else t - 1
-                    val startSec = (startFrame * HOP_LENGTH) / SR.toFloat()
-                    val endSec = ((endFrame + 1) * HOP_LENGTH) / SR.toFloat()
+                    val rawStartSec = (startFrame * HOP_LENGTH) / SR.toFloat()
+                    val rawEndSec = ((endFrame + 1) * HOP_LENGTH) / SR.toFloat()
+                    val startSec = max(0f, rawStartSec - cqtLatencySeconds)
+                    val endSec = max(startSec, rawEndSec - cqtLatencySeconds)
                     val midi = MIN_MIDI + noteIdx
                     events += "${midiToName(midi)} ${"%.2f".format(startSec)}s-${"%.2f".format(endSec)}s"
                     startFrame = -1
@@ -191,9 +195,10 @@ class TfliteAudioTranscriber(
 
     private fun buildCqtLikeFeatures(audio: FloatArray): Array<FloatArray> {
         val minFreq = 32.70319566f // C1
-        val maxFreq = (minFreq * 2.0.pow((CQT_BINS - 1) / 12.0)).toFloat()
+        val maxFreq = (minFreq * 2.0.pow(CQT_BINS / 12.0)).toFloat()
         val cqt = ConstantQ(SR.toFloat(), minFreq, maxFreq, 12f)
         val fftLength = cqt.getFFTlength()
+        cqtLatencySeconds = (fftLength / 2f) / SR
 
         val frameCount = max(1, (audio.size - fftLength).coerceAtLeast(0) / HOP_LENGTH + 1)
         val features = Array(frameCount) { FloatArray(CQT_BINS) }
