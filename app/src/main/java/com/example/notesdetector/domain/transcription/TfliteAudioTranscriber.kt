@@ -16,12 +16,10 @@ import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
-import kotlin.math.roundToInt
-import kotlin.math.sin
 
 class TfliteAudioTranscriber(
     private val context: Context,
-    private val modelAssetPath: String = "guitar_model.tflite"
+    private val modelAssetPath: String = "guitar_crnn_onsets_frames_2.tflite"
 ) {
 
     companion object {
@@ -210,12 +208,16 @@ class TfliteAudioTranscriber(
 
             cqt.calculateMagintudes(frameSamples)
             val magnitudes = cqt.getMagnitudes()
-            for (bin in 0 until CQT_BINS) {
+            val validBins = min(CQT_BINS, magnitudes.size)
+            for (bin in 0 until validBins) {
                 val value = magnitudes[bin]
                 features[frame][bin] = value
                 if (value > globalMax) {
                     globalMax = value
                 }
+            }
+            for (bin in validBins until CQT_BINS) {
+                features[frame][bin] = 0f
             }
         }
 
