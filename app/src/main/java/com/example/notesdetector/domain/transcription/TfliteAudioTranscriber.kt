@@ -16,10 +16,12 @@ import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 class TfliteAudioTranscriber(
     private val context: Context,
-    private val modelAssetPath: String = "guitar_crnn_onsets_frames_2.tflite"
+    private val modelAssetPath: String = "guitar_model.tflite"
 ) {
 
     companion object {
