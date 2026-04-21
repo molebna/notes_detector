@@ -5,96 +5,83 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.net.Uri
-import be.tarsos.dsp.ConstantQ
+import org.jtransforms.fft.DoubleFFT_1D
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.flex.FlexDelegate
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.PI
 import kotlin.math.cos
-import kotlin.math.ln
+import kotlin.math.exp
+import kotlin.math.log10
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.sqrt
 
 class TfliteAudioTranscriber(
     private val context: Context,
-    private val modelAssetPath: String = "guitar_crnn_onsets_frames_2.tflite"
+    private val modelAssetPath: String = "guitar_crnn_onsets_frames_3.tflite"
 ) {
-
-    private var cqtLatencySeconds: Float = 0f
 
     companion object {
         private const val SR = 22_050
         private const val HOP_LENGTH = 512
         private const val SEGMENT_W = 128
-        private const val CQT_BINS = 84
         private const val NUM_NOTES = 49
         private const val MIN_MIDI = 40
-        private const val ONSET_THRESHOLD = 0.3f
-        private const val FRAME_THRESHOLD = 0.15f
+        private const val ONSET_THRESHOLD = 0.08f
+        private const val FRAME_THRESHOLD = 0.1f
+        private const val N_BINS = 84
+        private const val BINS_PER_OCTAVE = 12
+        private const val FMIN = 32.70319566
+        private const val N_FFT = 4096
     }
+
+    data class NoteEvent(val startSec: Float, val midi: Int, val name: String)
 
     suspend fun transcribe(audioUri: Uri): String {
         val modelBuffer = loadModelFile(modelAssetPath)
         val rawAudio = decodeToMonoFloatPcm(audioUri, targetSampleRate = SR)
-        val cqtNorm = buildCqtLikeFeatures(rawAudio)
+        val cqtLike = buildCqtLikeFeatures(rawAudio)
 
-        if (cqtNorm.isEmpty()) {
-            return "No notes detected"
-        }
+        if (cqtLike.isEmpty()) return "No notes detected"
 
         return runWithInterpreter(modelBuffer) { interpreter ->
-            val (fullFrames, fullOnsets) = predictSegments(interpreter, cqtNorm)
-            val pianoRoll = applyOnsetFrameLogic(fullFrames, fullOnsets)
-            noteEventsFromPianoRoll(pianoRoll)
+            val (fullFrames, fullOnsets) = predictSegments(interpreter, cqtLike)
+            val finalRoll = applyPostprocess(fullFrames, fullOnsets)
+            noteEventsToText(finalRoll)
         }
     }
 
-
     private fun <T> runWithInterpreter(modelBuffer: ByteBuffer, block: (Interpreter) -> T): T {
-        val baseOptions = Interpreter.Options().apply {
-            setNumThreads(4)
-        }
-
         return try {
             FlexDelegate().use { flexDelegate ->
-                val optionsWithFlex = Interpreter.Options().apply {
+                val options = Interpreter.Options().apply {
                     setNumThreads(4)
                     addDelegate(flexDelegate)
                 }
-                Interpreter(modelBuffer, optionsWithFlex).use(block)
+                Interpreter(modelBuffer, options).use(block)
             }
-        } catch (flexFailure: Throwable) {
-            Interpreter(modelBuffer, baseOptions).use { interpreter ->
-                try {
-                    block(interpreter)
-                } catch (interpreterFailure: Throwable) {
-                    throw IllegalStateException(
-                        "Model requires Select TF Ops/Flex delegate. Ensure `tensorflow-lite-select-tf-ops` is included and app reinstalled.",
-                        interpreterFailure
-                    )
-                }
-            }
+        } catch (_: Throwable) {
+            val fallback = Interpreter.Options().apply { setNumThreads(4) }
+            Interpreter(modelBuffer, fallback).use(block)
         }
     }
 
     private fun predictSegments(
         interpreter: Interpreter,
-        cqtNorm: Array<FloatArray>
+        features: Array<FloatArray>
     ): Pair<Array<FloatArray>, Array<FloatArray>> {
-        val totalFrames = cqtNorm.size
+        val totalFrames = features.size
         val fullFrames = Array(totalFrames) { FloatArray(NUM_NOTES) }
         val fullOnsets = Array(totalFrames) { FloatArray(NUM_NOTES) }
 
-        val segmentStarts = (0 until (totalFrames - SEGMENT_W).coerceAtLeast(0) step SEGMENT_W).toList()
-
-        for (start in segmentStarts) {
-            val input = Array(1) { Array(SEGMENT_W) { Array(CQT_BINS) { FloatArray(1) } } }
+        for (i in 0 until (totalFrames - SEGMENT_W).coerceAtLeast(0) step SEGMENT_W) {
+            val x = Array(1) { Array(SEGMENT_W) { Array(N_BINS) { FloatArray(1) } } }
             for (t in 0 until SEGMENT_W) {
-                val sourceFrame = start + t
-                for (f in 0 until CQT_BINS) {
-                    input[0][t][f][0] = cqtNorm[sourceFrame][f]
+                for (f in 0 until N_BINS) {
+                    x[0][t][f][0] = features[i + t][f]
                 }
             }
 
@@ -102,138 +89,144 @@ class TfliteAudioTranscriber(
             val predOnsets = Array(1) { Array(SEGMENT_W) { FloatArray(NUM_NOTES) } }
 
             interpreter.runForMultipleInputsOutputs(
-                arrayOf(input),
-                mapOf(
-                    0 to predFrames,
-                    1 to predOnsets
-                )
+                arrayOf(x),
+                mapOf(0 to predFrames, 1 to predOnsets)
             )
 
             for (t in 0 until SEGMENT_W) {
-                val target = start + t
-                if (target >= totalFrames) break
-                System.arraycopy(predFrames[0][t], 0, fullFrames[target], 0, NUM_NOTES)
-                System.arraycopy(predOnsets[0][t], 0, fullOnsets[target], 0, NUM_NOTES)
+                fullFrames[i + t] = predFrames[0][t]
+                fullOnsets[i + t] = predOnsets[0][t]
             }
         }
 
         return fullFrames to fullOnsets
     }
 
-    private fun applyOnsetFrameLogic(
+    private fun applyPostprocess(
         fullFrames: Array<FloatArray>,
         fullOnsets: Array<FloatArray>
     ): Array<IntArray> {
         val totalFrames = fullFrames.size
-        val finalPianoRoll = Array(totalFrames) { IntArray(NUM_NOTES) }
+        val finalRoll = Array(totalFrames) { IntArray(NUM_NOTES) }
 
-        for (noteIdx in 0 until NUM_NOTES) {
-            var isNoteActive = false
+        for (n in 0 until NUM_NOTES) {
+            var active = false
             for (t in 0 until totalFrames) {
                 when {
-                    fullOnsets[t][noteIdx] > ONSET_THRESHOLD -> {
-                        if (isNoteActive && t > 0) {
-                            finalPianoRoll[t - 1][noteIdx] = 0
-                        }
-                        isNoteActive = true
-                        finalPianoRoll[t][noteIdx] = 1
+                    fullOnsets[t][n] > ONSET_THRESHOLD -> {
+                        active = true
+                        finalRoll[t][n] = 1
                     }
-
-                    isNoteActive && fullFrames[t][noteIdx] > FRAME_THRESHOLD -> {
-                        finalPianoRoll[t][noteIdx] = 1
+                    active && fullFrames[t][n] > FRAME_THRESHOLD -> {
+                        finalRoll[t][n] = 1
                     }
-
                     else -> {
-                        isNoteActive = false
+                        active = false
                     }
                 }
             }
         }
 
-        return finalPianoRoll
+        return finalRoll
     }
 
-    private fun noteEventsFromPianoRoll(pianoRoll: Array<IntArray>): String {
-        val events = mutableListOf<String>()
+    private fun noteEventsToText(finalRoll: Array<IntArray>): String {
+        val totalFrames = finalRoll.size
+        val events = mutableListOf<NoteEvent>()
 
-        for (noteIdx in 0 until NUM_NOTES) {
-            var startFrame = -1
-            for (t in pianoRoll.indices) {
-                val active = pianoRoll[t][noteIdx] == 1
-                if (active && startFrame == -1) {
-                    startFrame = t
-                }
+        for (n in 0 until NUM_NOTES) {
+            val midi = MIN_MIDI + n
+            var start: Int? = null
 
-                val isLastFrame = t == pianoRoll.lastIndex
-                if ((!active || isLastFrame) && startFrame != -1) {
-                    val endFrame = if (active && isLastFrame) t else t - 1
-                    val rawStartSec = (startFrame * HOP_LENGTH) / SR.toFloat()
-                    val rawEndSec = ((endFrame + 1) * HOP_LENGTH) / SR.toFloat()
-                    val startSec = max(0f, rawStartSec - cqtLatencySeconds)
-                    val endSec = max(startSec, rawEndSec - cqtLatencySeconds)
-                    val midi = MIN_MIDI + noteIdx
-                    events += "${midiToName(midi)} ${"%.2f".format(startSec)}s-${"%.2f".format(endSec)}s"
-                    startFrame = -1
+            for (t in 0 until totalFrames) {
+                if (finalRoll[t][n] == 1 && start == null) {
+                    start = t
+                } else if ((finalRoll[t][n] == 0 || t == totalFrames - 1) && start != null) {
+                    val end = t
+                    val t0 = start * HOP_LENGTH / SR.toFloat()
+                    val t1 = end * HOP_LENGTH / SR.toFloat()
+                    if (t1 - t0 > 0.05f) {
+                        events += NoteEvent(t0, midi, midiName(midi))
+                    }
+                    start = null
                 }
             }
         }
 
-        return if (events.isEmpty()) {
-            "No notes detected"
-        } else {
-            events.sortedBy { it.substringAfter(' ').substringBefore('s').toFloatOrNull() ?: 0f }
-                .joinToString(separator = "\n")
-        }
+        if (events.isEmpty()) return "No notes detected"
+
+        return events.sortedBy { it.startSec }
+            .joinToString("\n") { "${"%.2f".format(it.startSec)}s | ${it.midi} | ${it.name}" }
     }
 
-    private fun midiToName(midi: Int): String {
+    private fun midiName(midi: Int): String {
         val names = arrayOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
-        val pitchClass = names[midi % 12]
-        val octave = (midi / 12) - 1
-        return "$pitchClass$octave"
+        return "${names[midi % 12]}${(midi / 12) - 1}"
     }
 
     private fun buildCqtLikeFeatures(audio: FloatArray): Array<FloatArray> {
-        val minFreq = 32.70319566f // C1
-        val maxFreq = (minFreq * 2.0.pow(CQT_BINS / 12.0)).toFloat()
-        val cqt = ConstantQ(SR.toFloat(), minFreq, maxFreq, 12f)
-        val fftLength = cqt.getFFTlength()
-        cqtLatencySeconds = (fftLength / 2f) / SR
+        val window = FloatArray(N_FFT) { i -> (0.5 - 0.5 * cos(2.0 * PI * i / N_FFT)).toFloat() }
+        val frameCount = max(1, (audio.size - N_FFT).coerceAtLeast(0) / HOP_LENGTH + 1)
+        val fftBins = N_FFT / 2 + 1
 
-        val frameCount = max(1, (audio.size - fftLength).coerceAtLeast(0) / HOP_LENGTH + 1)
-        val features = Array(frameCount) { FloatArray(CQT_BINS) }
+        val stftMag = Array(fftBins) { FloatArray(frameCount) }
+        val fft = DoubleFFT_1D(N_FFT.toLong())
 
-        var globalMax = Float.MIN_VALUE
         for (frame in 0 until frameCount) {
             val start = frame * HOP_LENGTH
-            val frameSamples = FloatArray(fftLength)
-            for (i in 0 until fftLength) {
-                frameSamples[i] = if (start + i < audio.size) audio[start + i] else 0f
+            val complex = DoubleArray(2 * N_FFT)
+            for (i in 0 until N_FFT) {
+                val sample = if (start + i < audio.size) audio[start + i] else 0f
+                complex[2 * i] = (sample * window[i]).toDouble()
+                complex[2 * i + 1] = 0.0
             }
+            fft.complexForward(complex)
 
-            cqt.calculateMagintudes(frameSamples)
-            val magnitudes = cqt.getMagnitudes()
-            val validBins = min(CQT_BINS, magnitudes.size)
-            for (bin in 0 until validBins) {
-                val value = magnitudes[bin]
-                features[frame][bin] = value
-                if (value > globalMax) {
-                    globalMax = value
-                }
-            }
-            for (bin in validBins until CQT_BINS) {
-                features[frame][bin] = 0f
+            for (k in 0 until fftBins) {
+                val re = complex[2 * k]
+                val im = complex[2 * k + 1]
+                stftMag[k][frame] = sqrt(re * re + im * im).toFloat()
             }
         }
 
-        if (globalMax <= 0f) return features
+        val fftFreqs = FloatArray(fftBins) { k -> k * SR / N_FFT.toFloat() }
+        val cqtFreqs = FloatArray(N_BINS) { i -> (FMIN * 2.0.pow(i / BINS_PER_OCTAVE.toDouble())).toFloat() }
+        val q = 1.0 / (2.0.pow(1.0 / BINS_PER_OCTAVE) - 1.0)
+        val eps = 1e-10f
 
-        for (frame in features.indices) {
-            for (bin in 0 until CQT_BINS) {
-                val relative = max(features[frame][bin], 1e-8f) / max(globalMax, 1e-8f)
-                val db = 20f * ln(relative) / ln(10f)
-                val normalized = ((db + 80f) / 80f).coerceIn(0f, 1f)
-                features[frame][bin] = normalized
+        val features = Array(frameCount) { FloatArray(N_BINS) }
+
+        for (i in 0 until N_BINS) {
+            val f = cqtFreqs[i]
+            val bandwidth = (f / q).toFloat()
+
+            val weights = FloatArray(fftBins)
+            var weightSum = 0f
+            for (k in 0 until fftBins) {
+                val z = (fftFreqs[k] - f) / (bandwidth + eps)
+                val w = exp((-0.5f * z * z).toDouble()).toFloat()
+                weights[k] = w
+                weightSum += w
+            }
+            val norm = max(weightSum, eps)
+            for (k in 0 until fftBins) {
+                weights[k] /= norm
+            }
+
+            for (t in 0 until frameCount) {
+                var value = 0f
+                for (k in 0 until fftBins) {
+                    value += weights[k] * stftMag[k][t]
+                }
+                features[t][i] = value
+            }
+        }
+
+        for (t in 0 until frameCount) {
+            for (i in 0 until N_BINS) {
+                val v = max(features[t][i], eps)
+                val db = 20f * log10(v)
+                features[t][i] = ((db + 80f) / 80f).coerceIn(0f, 1f)
             }
         }
 

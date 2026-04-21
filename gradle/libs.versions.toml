@@ -15,7 +15,7 @@ navigationUiKtx = "2.9.7"
 legacySupportV4 = "1.0.0"
 fragmentKtx = "1.8.8"
 tensorflowLite = "2.16.1"
-tarsosDsp = "2.4-1"
+jtransforms = "3.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -33,7 +33,7 @@ androidx-legacy-support-v4 = { group = "androidx.legacy", name = "legacy-support
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
 tensorflow-lite = { group = "org.tensorflow", name = "tensorflow-lite", version.ref = "tensorflowLite" }
 tensorflow-lite-select-tf-ops = { group = "org.tensorflow", name = "tensorflow-lite-select-tf-ops", version.ref = "tensorflowLite" }
-tarsos-dsp = { group = "com.github.axet", name = "TarsosDSP", version.ref = "tarsosDsp" }
+jtransforms = { group = "com.github.wendykierp", name = "JTransforms", version.ref = "jtransforms" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
