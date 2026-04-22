@@ -21,7 +21,7 @@ import kotlin.math.sqrt
 
 class TfliteAudioTranscriber(
     private val context: Context,
-    private val modelAssetPath: String = "guitar_crnn_onsets_frames_3.tflite"
+    private val modelAssetPath: String = "guitar_model.tflite"
 ) {
 
     companion object {
@@ -30,7 +30,7 @@ class TfliteAudioTranscriber(
         private const val SEGMENT_W = 128
         private const val NUM_NOTES = 49
         private const val MIN_MIDI = 40
-        private const val ONSET_THRESHOLD = 0.08f
+        private const val ONSET_THRESHOLD = 0.6f
         private const val FRAME_THRESHOLD = 0.1f
         private const val N_BINS = 84
         private const val BINS_PER_OCTAVE = 12
