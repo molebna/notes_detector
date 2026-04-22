@@ -50,9 +50,15 @@ dependencies {
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.androidx.legacy.support.v4)
     implementation(libs.androidx.fragment.ktx)
+    implementation(libs.jtransforms)
     implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.select.tf.ops)
     implementation(libs.jtransforms)
+    implementation(libs.tarsos.dsp) {
+        artifact {
+            type = "jar"
+        }
+    }
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
