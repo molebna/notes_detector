@@ -36,9 +36,10 @@ class TfliteAudioTranscriber(
         private const val BINS_PER_OCTAVE = 12
         private const val FMIN = 32.70319566
         private const val N_FFT = 4096
+        private const val MERGE_GAP_SECONDS = 0.08f
     }
 
-    data class NoteEvent(val startSec: Float, val midi: Int, val name: String)
+    data class NoteEvent(val startSec: Float, val endSec: Float, val midi: Int, val name: String)
 
     suspend fun transcribe(audioUri: Uri): String {
         val modelBuffer = loadModelFile(modelAssetPath)
@@ -146,7 +147,7 @@ class TfliteAudioTranscriber(
                     val t0 = start * HOP_LENGTH / SR.toFloat()
                     val t1 = end * HOP_LENGTH / SR.toFloat()
                     if (t1 - t0 > 0.05f) {
-                        events += NoteEvent(t0, midi, midiName(midi))
+                        events += NoteEvent(t0, t1, midi, midiName(midi))
                     }
                     start = null
                 }
@@ -155,8 +156,17 @@ class TfliteAudioTranscriber(
 
         if (events.isEmpty()) return "No notes detected"
 
-        return events.sortedBy { it.startSec }
-            .joinToString("\n") { "${"%.2f".format(it.startSec)}s | ${it.midi} | ${it.name}" }
+        val merged = mutableListOf<NoteEvent>()
+        for (event in events.sortedBy { it.startSec }) {
+            val previous = merged.lastOrNull()
+            if (previous != null && previous.midi == event.midi && event.startSec - previous.endSec <= MERGE_GAP_SECONDS) {
+                merged[merged.lastIndex] = previous.copy(endSec = max(previous.endSec, event.endSec))
+            } else {
+                merged += event
+            }
+        }
+
+        return merged.joinToString("\n") { "${"%.2f".format(it.startSec)}s | ${it.midi} | ${it.name}" }
     }
 
     private fun midiName(midi: Int): String {
