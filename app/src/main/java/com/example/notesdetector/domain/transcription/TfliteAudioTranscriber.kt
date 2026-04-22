@@ -36,10 +36,11 @@ class TfliteAudioTranscriber(
         private const val BINS_PER_OCTAVE = 12
         private const val FMIN = 32.70319566
         private const val N_FFT = 4096
-        private const val MERGE_GAP_SECONDS = 0.02f
+        private const val MERGE_GAP_SECONDS = 0.08f
+        private const val SEPARATE_NOTE_PEAK_THRESHOLD = 0.35f
     }
 
-    data class NoteEvent(val startSec: Float, val endSec: Float, val midi: Int, val name: String)
+    data class NoteEvent(val startSec: Float, val endSec: Float, val midi: Int, val name: String, val peak: Float)
 
     suspend fun transcribe(audioUri: Uri): String {
         val modelBuffer = loadModelFile(modelAssetPath)
@@ -51,7 +52,7 @@ class TfliteAudioTranscriber(
         return runWithInterpreter(modelBuffer) { interpreter ->
             val (fullFrames, fullOnsets) = predictSegments(interpreter, cqtLike)
             val finalRoll = applyPostprocess(fullFrames, fullOnsets)
-            noteEventsToText(finalRoll)
+            noteEventsToText(finalRoll, fullFrames, fullOnsets)
         }
     }
 
@@ -131,7 +132,11 @@ class TfliteAudioTranscriber(
         return finalRoll
     }
 
-    private fun noteEventsToText(finalRoll: Array<IntArray>): String {
+    private fun noteEventsToText(
+        finalRoll: Array<IntArray>,
+        fullFrames: Array<FloatArray>,
+        fullOnsets: Array<FloatArray>
+    ): String {
         val totalFrames = finalRoll.size
         val events = mutableListOf<NoteEvent>()
 
@@ -143,11 +148,16 @@ class TfliteAudioTranscriber(
                 if (finalRoll[t][n] == 1 && start == null) {
                     start = t
                 } else if ((finalRoll[t][n] == 0 || t == totalFrames - 1) && start != null) {
+                    val startFrame = start ?: continue
                     val end = t
-                    val t0 = start * HOP_LENGTH / SR.toFloat()
+                    val t0 = startFrame * HOP_LENGTH / SR.toFloat()
                     val t1 = end * HOP_LENGTH / SR.toFloat()
                     if (t1 - t0 > 0.05f) {
-                        events += NoteEvent(t0, t1, midi, midiName(midi))
+                        var peak = 0f
+                        for (k in startFrame..end) {
+                            peak = max(peak, max(fullFrames[k][n], fullOnsets[k][n]))
+                        }
+                        events += NoteEvent(t0, t1, midi, midiName(midi), peak)
                     }
                     start = null
                 }
@@ -159,8 +169,12 @@ class TfliteAudioTranscriber(
         val merged = mutableListOf<NoteEvent>()
         for (event in events.sortedBy { it.startSec }) {
             val previous = merged.lastOrNull()
-            if (previous != null && previous.midi == event.midi && event.startSec - previous.endSec <= MERGE_GAP_SECONDS) {
-                merged[merged.lastIndex] = previous.copy(endSec = max(previous.endSec, event.endSec))
+            val shortGap = previous != null && event.startSec - previous.endSec <= MERGE_GAP_SECONDS
+            val samePitch = previous != null && previous.midi == event.midi
+            val weakRetrigger = event.peak < SEPARATE_NOTE_PEAK_THRESHOLD
+
+            if (samePitch && shortGap && weakRetrigger) {
+                merged[merged.lastIndex] = previous!!.copy(endSec = max(previous.endSec, event.endSec), peak = max(previous.peak, event.peak))
             } else {
                 merged += event
             }
