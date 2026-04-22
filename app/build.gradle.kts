@@ -53,6 +53,11 @@ dependencies {
     implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.select.tf.ops)
     implementation(libs.jtransforms)
+    implementation(libs.tarsos.dsp) {
+        artifact {
+            type = "jar"
+        }
+    }
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

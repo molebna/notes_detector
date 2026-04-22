@@ -15,6 +15,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Selected audio"
+            android:textColor="@color/beige"
             android:textStyle="bold" />
 
         <TextView
@@ -22,6 +23,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:textColor="@color/beige"
             tools:text="content://media/external/audio/media/14" />
 
         <Button
@@ -60,6 +62,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="Transcription"
+            android:textColor="@color/beige"
             android:textStyle="bold" />
 
         <TextView
@@ -67,6 +70,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:textColor="@color/beige"
             tools:text="Hello from TensorFlow Lite model" />
 
     </LinearLayout>
