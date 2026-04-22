@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.notesdetector.databinding.ActivityMainBinding
+import com.example.notesdetector.presentation.ui.transcription.TranscriptionFragment
 
 class MainActivity : AppCompatActivity() {
 
@@ -33,6 +34,7 @@ class MainActivity : AppCompatActivity() {
                     findNavController(R.id.nav_host_fragment_content_main)
 
                 navController.navigate(R.id.nav_transcription)
+                navController.getBackStackEntry(R.id.nav_transcription).savedStateHandle[TranscriptionFragment.AUDIO_URI_KEY] = uri.toString()
             }
         }
 
