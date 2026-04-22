@@ -31,12 +31,12 @@ class TfliteAudioTranscriber(
         private const val NUM_NOTES = 49
         private const val MIN_MIDI = 40
         private const val ONSET_THRESHOLD = 0.6f
-        private const val FRAME_THRESHOLD = 0.1f
+        private const val FRAME_THRESHOLD = 0.2f
         private const val N_BINS = 84
         private const val BINS_PER_OCTAVE = 12
         private const val FMIN = 32.70319566
         private const val N_FFT = 4096
-        private const val MERGE_GAP_SECONDS = 0.08f
+        private const val MERGE_GAP_SECONDS = 0.02f
     }
 
     data class NoteEvent(val startSec: Float, val endSec: Float, val midi: Int, val name: String)
