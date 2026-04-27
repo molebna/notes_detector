@@ -4,8 +4,7 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.findNavController
-import com.example.notesdetector.R
+import com.example.notesdetector.data.local.TabNotesRepository
 import com.example.notesdetector.domain.transcription.TabMapper
 import com.example.notesdetector.domain.transcription.TfliteAudioTranscriber
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +17,7 @@ import kotlinx.coroutines.launch
 class TranscriptionViewModel(application: Application) : AndroidViewModel(application) {
 
     private val transcriber = TfliteAudioTranscriber(application.applicationContext)
+    private val repository = TabNotesRepository.getInstance(application.applicationContext)
 
     private val _uiState = MutableStateFlow(TranscriptionUiState())
     val uiState: StateFlow<TranscriptionUiState> = _uiState.asStateFlow()
@@ -38,7 +38,16 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
             val result = runCatching { transcriber.transcribe(uri) }
             _uiState.update { state ->
                 result.fold(
-                    onSuccess = { state.copy(isLoading = false, notes = it, tabNotes = TabMapper.map(it), navigateToResult = true) },
+                    onSuccess = { noteEvents ->
+                        val tabNotes = TabMapper.map(noteEvents)
+                        repository.saveTabNotes(uri.toString(), tabNotes)
+                        state.copy(
+                            isLoading = false,
+                            notes = noteEvents,
+                            tabNotes = tabNotes,
+                            navigateToResult = true
+                        )
+                    },
                     onFailure = {
                         state.copy(
                             isLoading = false,

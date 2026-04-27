@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 
 class TranscriptionFragment : Fragment() {
 
-    private val viewModel: TranscriptionViewModel by activityViewModels()
+    private val viewModel: TranscriptionViewModel by viewModels()
     private var _binding: FragmentTranscriptionBinding? = null
     private val binding get() = _binding!!
 
