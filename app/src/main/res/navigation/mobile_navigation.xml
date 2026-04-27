@@ -9,7 +9,11 @@
         android:id="@+id/nav_home"
         android:name="com.example.notesdetector.presentation.ui.home.HomeFragment"
         android:label="@string/menu_home"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_nav_home_to_nav_transcription"
+            app:destination="@id/nav_transcription" />
+    </fragment>
 
     <fragment
         android:id="@+id/nav_gallery"
@@ -27,6 +31,18 @@
         android:id="@+id/nav_transcription"
         android:name="com.example.notesdetector.presentation.ui.transcription.TranscriptionFragment"
         android:label=""
-        tools:layout="@layout/fragment_transcription" />
+        tools:layout="@layout/fragment_transcription" >
+        <action
+            android:id="@+id/action_nav_transcription_to_nav_notesview"
+            app:destination="@id/nav_notesview" />
+    </fragment>
+
+
+    <fragment
+        android:id="@+id/nav_notesview"
+        android:name="com.example.notesdetector.presentation.ui.transcription.NotesViewFragment"
+        android:label=""
+        tools:layout="@layout/fragment_notes_view">
+    </fragment>
 
 </navigation>

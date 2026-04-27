@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
                 val navController =
                     findNavController(R.id.nav_host_fragment_content_main)
 
-                navController.navigate(R.id.nav_transcription)
+                navController.navigate(R.id.action_nav_home_to_nav_transcription)
                 navController.getBackStackEntry(R.id.nav_transcription).savedStateHandle[TranscriptionFragment.AUDIO_URI_KEY] = uri.toString()
             }
         }

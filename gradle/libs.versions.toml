@@ -17,6 +17,7 @@ fragmentKtx = "1.8.8"
 tensorflowLite = "2.16.1"
 jtransforms = "3.1"
 tarsosDsp = "2.4"
+uiGraphicsAndroid = "1.11.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -36,6 +37,7 @@ tensorflow-lite = { group = "org.tensorflow", name = "tensorflow-lite", version.
 tensorflow-lite-select-tf-ops = { group = "org.tensorflow", name = "tensorflow-lite-select-tf-ops", version.ref = "tensorflowLite" }
 jtransforms = { group = "com.github.wendykierp", name = "JTransforms", version.ref = "jtransforms" }
 tarsos-dsp = { group = "com.github.axet", name = "TarsosDSP", version.ref = "tarsosDsp" }
+androidx-ui-graphics-android = { group = "androidx.compose.ui", name = "ui-graphics-android", version.ref = "uiGraphicsAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

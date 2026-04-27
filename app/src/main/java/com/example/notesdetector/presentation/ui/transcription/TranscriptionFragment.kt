@@ -6,17 +6,18 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import com.example.notesdetector.R
 import com.example.notesdetector.databinding.FragmentTranscriptionBinding
 import kotlinx.coroutines.launch
 
 class TranscriptionFragment : Fragment() {
 
-    private val viewModel: TranscriptionViewModel by viewModels()
+    private val viewModel: TranscriptionViewModel by activityViewModels()
     private var _binding: FragmentTranscriptionBinding? = null
     private val binding get() = _binding!!
 
@@ -52,12 +53,16 @@ class TranscriptionFragment : Fragment() {
                     binding.progressBar.isVisible = state.isLoading
                     binding.transcribeButton.isEnabled = !state.isLoading && state.selectedAudioUri != null
                     binding.selectedAudioText.text = state.selectedAudioUri ?: "No audio selected"
-                    binding.resultText.text = state.transcription.ifBlank { "Transcription will appear here." }
 
                     val hasError = !state.errorMessage.isNullOrBlank()
                     binding.errorText.isVisible = hasError
                     binding.retryButton.isVisible = hasError
                     binding.errorText.text = state.errorMessage
+
+                    if (state.navigateToResult) {
+                        findNavController().navigate(R.id.action_nav_transcription_to_nav_notesview)
+                        viewModel.onNavigated()
+                    }
                 }
             }
         }

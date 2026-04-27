@@ -18,6 +18,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
+import com.example.notesdetector.data.NoteEvent
 
 class TfliteAudioTranscriber(
     private val context: Context,
@@ -36,23 +37,20 @@ class TfliteAudioTranscriber(
         private const val BINS_PER_OCTAVE = 12
         private const val FMIN = 32.70319566
         private const val N_FFT = 4096
-        private const val MERGE_GAP_SECONDS = 0.08f
-        private const val SEPARATE_NOTE_PEAK_THRESHOLD = 0.35f
+        private const val MERGE_GAP_SECONDS = 0.5f
+        private const val SEPARATE_NOTE_PEAK_THRESHOLD = 0.9f
     }
 
-    data class NoteEvent(val startSec: Float, val endSec: Float, val midi: Int, val name: String, val peak: Float)
-
-    suspend fun transcribe(audioUri: Uri): String {
+    suspend fun transcribe(audioUri: Uri): List<NoteEvent> {
         val modelBuffer = loadModelFile(modelAssetPath)
         val rawAudio = decodeToMonoFloatPcm(audioUri, targetSampleRate = SR)
         val cqtLike = buildCqtLikeFeatures(rawAudio)
 
-        if (cqtLike.isEmpty()) return "No notes detected"
-
         return runWithInterpreter(modelBuffer) { interpreter ->
             val (fullFrames, fullOnsets) = predictSegments(interpreter, cqtLike)
             val finalRoll = applyPostprocess(fullFrames, fullOnsets)
-            noteEventsToText(finalRoll, fullFrames, fullOnsets)
+
+            noteEventsToMidi(finalRoll, fullFrames, fullOnsets)
         }
     }
 
@@ -132,11 +130,11 @@ class TfliteAudioTranscriber(
         return finalRoll
     }
 
-    private fun noteEventsToText(
+    private fun noteEventsToMidi(
         finalRoll: Array<IntArray>,
         fullFrames: Array<FloatArray>,
         fullOnsets: Array<FloatArray>
-    ): String {
+    ): List<NoteEvent> {
         val totalFrames = finalRoll.size
         val events = mutableListOf<NoteEvent>()
 
@@ -164,23 +162,48 @@ class TfliteAudioTranscriber(
             }
         }
 
-        if (events.isEmpty()) return "No notes detected"
-
         val merged = mutableListOf<NoteEvent>()
+
         for (event in events.sortedBy { it.startSec }) {
+
             val previous = merged.lastOrNull()
-            val shortGap = previous != null && event.startSec - previous.endSec <= MERGE_GAP_SECONDS
-            val samePitch = previous != null && previous.midi == event.midi
+
+            if (previous == null) {
+                merged += event
+                continue
+            }
+
+            val gap = event.startSec - previous.endSec
+            val shortGap = gap <= MERGE_GAP_SECONDS
+
+            val samePitch = previous.midi == event.midi
+
             val weakRetrigger = event.peak < SEPARATE_NOTE_PEAK_THRESHOLD
 
-            if (samePitch && shortGap && weakRetrigger) {
-                merged[merged.lastIndex] = previous!!.copy(endSec = max(previous.endSec, event.endSec), peak = max(previous.peak, event.peak))
+            val overlap = event.startSec <= previous.endSec
+
+            val shouldMerge =
+                samePitch &&
+                        (shortGap || overlap) &&
+                        weakRetrigger
+
+            if (shouldMerge) {
+                merged[merged.lastIndex] = previous.copy(
+                    endSec = max(previous.endSec, event.endSec),
+                    peak = max(previous.peak, event.peak)
+                )
             } else {
                 merged += event
             }
         }
 
-        return merged.joinToString("\n") { "${"%.2f".format(it.startSec)}s | ${it.midi} | ${it.name}" }
+        return merged
+    }
+
+    private fun noteEventsToText(midi: List<NoteEvent>): String {
+        return midi.joinToString("\n") {
+            "${"%.2f".format(it.startSec)}-${"%.2f".format(it.endSec)}s | ${it.midi} | ${it.name}"
+        }
     }
 
     private fun midiName(midi: Int): String {

@@ -4,6 +4,9 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.findNavController
+import com.example.notesdetector.R
+import com.example.notesdetector.domain.transcription.TabMapper
 import com.example.notesdetector.domain.transcription.TfliteAudioTranscriber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +24,7 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
 
     fun setAudioUri(uri: String) {
         if (_uiState.value.selectedAudioUri == uri) return
-        _uiState.update { it.copy(selectedAudioUri = uri, transcription = "", errorMessage = null) }
+        _uiState.update { it.copy(selectedAudioUri = uri, errorMessage = null, navigateToResult = false) }
     }
 
     fun transcribeSelectedAudio() {
@@ -31,11 +34,11 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
 
     private fun transcribe(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, transcription = "") }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, navigateToResult = false) }
             val result = runCatching { transcriber.transcribe(uri) }
             _uiState.update { state ->
                 result.fold(
-                    onSuccess = { state.copy(isLoading = false, transcription = it) },
+                    onSuccess = { state.copy(isLoading = false, notes = it, tabNotes = TabMapper.map(it), navigateToResult = true) },
                     onFailure = {
                         state.copy(
                             isLoading = false,
@@ -44,6 +47,12 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
                     }
                 )
             }
+        }
+    }
+
+    fun onNavigated() {
+        _uiState.update {
+            it.copy(navigateToResult = false)
         }
     }
 }

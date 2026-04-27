@@ -8,8 +8,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.notesdetector.R
 import com.example.notesdetector.data.NotesFile
 
-class NotesAdapter(private val notes: List<NotesFile>) :
-    RecyclerView.Adapter<NotesAdapter.NoteViewHolder>() {
+class NoteFileAdapter(private val notes: List<NotesFile>) :
+    RecyclerView.Adapter<NoteFileAdapter.NoteViewHolder>() {
 
     class NoteViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val titleText: TextView = view.findViewById(R.id.note_title)
@@ -19,7 +19,7 @@ class NotesAdapter(private val notes: List<NotesFile>) :
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NoteViewHolder {
 
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_note, parent, false)
+            .inflate(R.layout.item_note_file, parent, false)
 
         return NoteViewHolder(view)
     }
