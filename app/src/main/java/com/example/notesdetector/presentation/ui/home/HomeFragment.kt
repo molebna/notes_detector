@@ -5,34 +5,46 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.notesdetector.R
 import com.example.notesdetector.presentation.adapters.NoteFileAdapter
+import kotlinx.coroutines.launch
 
-class HomeFragment : Fragment() {
+class HomeFragment : Fragment(R.layout.fragment_home) {
 
-    private lateinit var viewModel: HomeViewModel
+    private val viewModel: HomeViewModel by viewModels()
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-
-        return inflater.inflate(R.layout.fragment_home, container, false)
-    }
+    private lateinit var adapter: NoteFileAdapter
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-
         super.onViewCreated(view, savedInstanceState)
-
-        viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
 
         val recycler = view.findViewById<RecyclerView>(R.id.notesList)
 
+        adapter = NoteFileAdapter { note ->
+            findNavController().navigate(R.id.nav_notesview)
+        }
+
         recycler.layoutManager = LinearLayoutManager(requireContext())
-        recycler.adapter = NoteFileAdapter(viewModel.notes)
+        recycler.adapter = adapter
+
+        observeNotes()
+    }
+
+    private fun observeNotes() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.notes.collect { notes ->
+                    adapter.submitList(notes)
+                }
+            }
+        }
     }
 }

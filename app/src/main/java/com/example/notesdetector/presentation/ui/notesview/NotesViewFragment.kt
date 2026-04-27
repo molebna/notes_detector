@@ -1,4 +1,4 @@
-package com.example.notesdetector.presentation.ui.transcription
+package com.example.notesdetector.presentation.ui.notesview
 
 import android.os.Bundle
 import android.view.View

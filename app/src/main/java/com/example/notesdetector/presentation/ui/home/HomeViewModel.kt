@@ -1,15 +1,29 @@
 package com.example.notesdetector.presentation.ui.home
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.notesdetector.data.NotesFile
+import com.example.notesdetector.data.local.TabNotesRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
-    val notes = listOf(
-        NotesFile("Guitar melody", "12.03.2026"),
-        NotesFile("Piano theme", "10.03.2026"),
-        NotesFile("Test recording", "08.03.2026")
-    )
+    private val repository = TabNotesRepository.getInstance(application)
+
+    private val _notes = MutableStateFlow<List<NotesFile>>(emptyList())
+    val notes: StateFlow<List<NotesFile>> = _notes
+
+    init {
+        loadNotes()
+    }
+
+    private fun loadNotes() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _notes.value = repository.getAllNotesFiles()
+        }
+    }
 }

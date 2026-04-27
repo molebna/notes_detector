@@ -1,8 +1,10 @@
 package com.example.notesdetector.data.local
 
 import android.content.Context
+import com.example.notesdetector.data.NotesFile
 import com.example.notesdetector.data.TabNote
 import com.example.notesdetector.data.TabNoteEntity
+import com.example.notesdetector.domain.transcription.NotesMapper
 
 class TabNotesRepository private constructor(context: Context) {
 
@@ -14,6 +16,14 @@ class TabNotesRepository private constructor(context: Context) {
 
     fun getLatestTabNotes(): TabNoteEntity? {
         return dbHelper.getLatestTabNotes()
+    }
+
+    fun getAllTabNotes(): List<TabNoteEntity> {
+        return dbHelper.getAllTabNotes()
+    }
+
+    fun getAllNotesFiles(): List<NotesFile> {
+        return getAllTabNotes().map { NotesMapper.toNotesFile(it) }
     }
 
     companion object {

@@ -40,7 +40,7 @@
 
     <fragment
         android:id="@+id/nav_notesview"
-        android:name="com.example.notesdetector.presentation.ui.transcription.NotesViewFragment"
+        android:name="com.example.notesdetector.presentation.ui.notesview.NotesViewFragment"
         android:label=""
         tools:layout="@layout/fragment_notes_view">
     </fragment>

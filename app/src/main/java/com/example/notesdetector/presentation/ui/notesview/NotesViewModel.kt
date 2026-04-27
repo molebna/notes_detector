@@ -1,4 +1,4 @@
-package com.example.notesdetector.presentation.ui.transcription
+package com.example.notesdetector.presentation.ui.notesview
 
 import android.app.Application
 import android.provider.OpenableColumns
@@ -6,6 +6,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notesdetector.data.local.TabNotesRepository
+import com.example.notesdetector.data.utils.FileUtils.getFileNameFromUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,7 +41,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                             state.copy(
                                 isLoading = false,
                                 tabNotes = entity.tabNotes,
-                                fileName = getFileNameFromUri(entity.audioUri)
+                                fileName = getFileNameFromUri(context = getApplication(), filePath = entity.audioUri)
                             )
                         }
                     },
@@ -53,27 +54,5 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
-    }
-
-    private fun getFileNameFromUri(filePath: String): String {
-        val uri = filePath.toUri()
-        var name = "Unknown file"
-
-        val cursor = getApplication<Application>().contentResolver.query(
-            uri,
-            null,
-            null,
-            null,
-            null
-        )
-
-        cursor?.use {
-            val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (it.moveToFirst() && nameIndex != -1) {
-                name = it.getString(nameIndex)
-            }
-        }
-
-        return name.substringBeforeLast(".")
     }
 }

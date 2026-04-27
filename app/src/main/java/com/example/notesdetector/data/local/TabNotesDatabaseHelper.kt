@@ -62,6 +62,38 @@ class TabNotesDatabaseHelper(context: Context) :
         }
     }
 
+    fun getAllTabNotes(): List<TabNoteEntity> {
+        val result = mutableListOf<TabNoteEntity>()
+
+        val cursor = readableDatabase.query(
+            TABLE_TAB_TRANSCRIPTIONS,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "$COLUMN_CREATED_AT DESC"
+        )
+
+        cursor.use {
+            if (it.moveToFirst()) {
+                do {
+                    val entity = TabNoteEntity(
+                        id = it.getLong(it.getColumnIndexOrThrow(COLUMN_ID)),
+                        audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
+                        tabNotes = it.getString(it.getColumnIndexOrThrow(COLUMN_TAB_NOTES)).toTabNotes(),
+                        createdAt = it.getLong(it.getColumnIndexOrThrow(COLUMN_CREATED_AT))
+                    )
+
+                    result.add(entity)
+
+                } while (it.moveToNext())
+            }
+        }
+
+        return result
+    }
+
     private fun List<TabNote>.toJson(): String {
         val jsonArray = JSONArray()
         forEach { note ->

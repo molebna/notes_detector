@@ -7,9 +7,13 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.notesdetector.R
 import com.example.notesdetector.data.NotesFile
+import com.example.notesdetector.data.utils.FileUtils.getFileNameFromUri
 
-class NoteFileAdapter(private val notes: List<NotesFile>) :
-    RecyclerView.Adapter<NoteFileAdapter.NoteViewHolder>() {
+class NoteFileAdapter(
+    private val onClick: (NotesFile) -> Unit
+) : RecyclerView.Adapter<NoteFileAdapter.NoteViewHolder>() {
+
+    private var notes: List<NotesFile> = emptyList()
 
     class NoteViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val titleText: TextView = view.findViewById(R.id.note_title)
@@ -17,22 +21,27 @@ class NoteFileAdapter(private val notes: List<NotesFile>) :
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NoteViewHolder {
-
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_note_file, parent, false)
 
         return NoteViewHolder(view)
     }
 
-    override fun getItemCount(): Int {
-        return notes.size
-    }
+    override fun getItemCount(): Int = notes.size
 
     override fun onBindViewHolder(holder: NoteViewHolder, position: Int) {
-
         val note = notes[position]
 
-        holder.titleText.text = note.title
+        holder.titleText.text = getFileNameFromUri(holder.itemView.context, note.title)
         holder.dateText.text = "created: ${note.date}"
+
+        holder.itemView.setOnClickListener {
+            onClick(note)
+        }
+    }
+
+    fun submitList(newNotes: List<NotesFile>) {
+        notes = newNotes
+        notifyDataSetChanged()
     }
 }

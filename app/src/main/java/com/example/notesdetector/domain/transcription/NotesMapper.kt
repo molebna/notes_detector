@@ -1,0 +1,23 @@
+package com.example.notesdetector.domain.transcription
+
+import android.icu.text.SimpleDateFormat
+import com.example.notesdetector.data.NotesFile
+import com.example.notesdetector.data.TabNoteEntity
+import java.util.Date
+import java.util.Locale
+
+object NotesMapper {
+
+    fun toNotesFile(entity: TabNoteEntity): NotesFile {
+        val formatter = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+
+        val date = Date(entity.createdAt)
+
+        val formattedDate = formatter.format(date)
+
+        return NotesFile(
+            title = entity.audioUri,
+            date = formattedDate
+        )
+    }
+}
