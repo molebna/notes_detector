@@ -10,8 +10,8 @@ class TabNotesRepository private constructor(context: Context) {
 
     private val dbHelper = TabNotesDatabaseHelper(context.applicationContext)
 
-    fun saveTabNotes(audioUri: String, tabNotes: List<TabNote>): Long {
-        return dbHelper.saveTabNotes(audioUri, tabNotes)
+    fun saveTabNotes(audioUri: String, audioName: String?, tabNotes: List<TabNote>): Long {
+        return dbHelper.saveTabNotes(audioUri, audioName, tabNotes)
     }
 
     fun getLatestTabNotes(): TabNoteEntity? {

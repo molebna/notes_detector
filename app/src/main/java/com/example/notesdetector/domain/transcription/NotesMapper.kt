@@ -16,7 +16,7 @@ object NotesMapper {
         val formattedDate = formatter.format(date)
 
         return NotesFile(
-            title = entity.audioUri,
+            title = entity.audioName ?: entity.audioUri,
             date = formattedDate
         )
     }

@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notesdetector.data.local.TabNotesRepository
+import com.example.notesdetector.data.utils.FileUtils.getFileNameFromUri
 import com.example.notesdetector.domain.transcription.TabMapper
 import com.example.notesdetector.domain.transcription.TfliteAudioTranscriber
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +41,8 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
                 result.fold(
                     onSuccess = { noteEvents ->
                         val tabNotes = TabMapper.map(noteEvents)
-                        repository.saveTabNotes(uri.toString(), tabNotes)
+                        val audioName = getFileNameFromUri(getApplication(), uri.toString())
+                        repository.saveTabNotes(uri.toString(), audioName, tabNotes)
                         state.copy(
                             isLoading = false,
                             notes = noteEvents,
