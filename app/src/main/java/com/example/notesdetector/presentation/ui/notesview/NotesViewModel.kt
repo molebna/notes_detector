@@ -1,8 +1,6 @@
 package com.example.notesdetector.presentation.ui.notesview
 
 import android.app.Application
-import android.provider.OpenableColumns
-import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notesdetector.data.local.TabNotesRepository
@@ -41,7 +39,8 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                             state.copy(
                                 isLoading = false,
                                 tabNotes = entity.tabNotes,
-                                fileName = getFileNameFromUri(context = getApplication(), filePath = entity.audioUri)
+                                fileName = entity.audioName
+                                    ?: getFileNameFromUri(context = getApplication(), filePath = entity.audioUri)
                             )
                         }
                     },
