@@ -43,6 +43,10 @@
         android:name="com.example.notesdetector.presentation.ui.notesview.NotesViewFragment"
         android:label=""
         tools:layout="@layout/fragment_notes_view">
+        <argument
+            android:name="tabNoteId"
+            app:argType="long"
+            android:defaultValue="-1" />
         <action
             android:id="@+id/action_nav_notesview_to_nav_home"
             app:destination="@id/nav_home" />

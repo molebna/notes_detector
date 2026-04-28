@@ -2,6 +2,7 @@ package com.example.notesdetector.presentation.ui.notesview
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.example.notesdetector.data.local.TabNotesRepository
 import com.example.notesdetector.data.utils.FileUtils.getFileNameFromUri
@@ -12,7 +13,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class NotesViewModel(application: Application) : AndroidViewModel(application) {
+class NotesViewModel(
+    application: Application,
+    savedStateHandle: SavedStateHandle
+) : AndroidViewModel(application) {
 
     private val repository = TabNotesRepository.getInstance(application.applicationContext)
 
@@ -20,7 +24,12 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<NotesUiState> = _uiState.asStateFlow()
 
     init {
-        loadLatestTabNotes()
+        val tabNoteId = savedStateHandle.get<Long>("tabNoteId")
+        if (tabNoteId == null || tabNoteId == -1L) {
+            loadLatestTabNotes()
+        } else {
+            loadTabNotes(tabNoteId)
+        }
     }
 
     fun loadLatestTabNotes() {
