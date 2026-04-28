@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.core.os.bundleOf
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.notesdetector.R
@@ -29,7 +30,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val recycler = view.findViewById<RecyclerView>(R.id.notesList)
 
         adapter = NoteFileAdapter { note ->
-            findNavController().navigate(R.id.nav_notesview)
+            findNavController().navigate(
+                R.id.nav_notesview,
+                bundleOf("tabNoteId" to note.id)
+            )
         }
 
         recycler.layoutManager = LinearLayoutManager(requireContext())
