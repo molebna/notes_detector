@@ -10,4 +10,6 @@
     <string name="menu_home">Notes Transcriber</string>
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
+    <string name="selected_audio">Selected audio</string>
+    <string name="retry">Retry</string>
 </resources>

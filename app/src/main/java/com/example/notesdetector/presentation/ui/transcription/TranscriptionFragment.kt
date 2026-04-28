@@ -15,6 +15,7 @@ import com.example.notesdetector.R
 import com.example.notesdetector.databinding.FragmentTranscriptionBinding
 import kotlinx.coroutines.launch
 import androidx.navigation.NavOptions
+import com.example.notesdetector.data.utils.FileUtils.getFileNameFromUri
 
 class TranscriptionFragment : Fragment() {
 
@@ -53,7 +54,8 @@ class TranscriptionFragment : Fragment() {
                 viewModel.uiState.collect { state ->
                     binding.progressBar.isVisible = state.isLoading
                     binding.transcribeButton.isEnabled = !state.isLoading && state.selectedAudioUri != null
-                    binding.selectedAudioText.text = state.selectedAudioUri ?: "No audio selected"
+                    binding.selectedAudioText.text = context?.let { getFileNameFromUri(it, state.selectedAudioUri) }
+                        ?: "No audio selected"
 
                     val hasError = !state.errorMessage.isNullOrBlank()
                     binding.errorText.isVisible = hasError
