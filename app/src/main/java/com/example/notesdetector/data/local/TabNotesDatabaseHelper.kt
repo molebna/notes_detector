@@ -104,6 +104,30 @@ class TabNotesDatabaseHelper(context: Context) :
         return result
     }
 
+    fun getTabNotesById(id: Long): TabNoteEntity? {
+        val cursor = readableDatabase.query(
+            TABLE_TAB_TRANSCRIPTIONS,
+            null,
+            "$COLUMN_ID = ?",
+            arrayOf(id.toString()),
+            null,
+            null,
+            null
+        )
+
+        cursor.use {
+            if (!it.moveToFirst()) return null
+
+            return TabNoteEntity(
+                id = it.getLong(it.getColumnIndexOrThrow(COLUMN_ID)),
+                audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
+                audioName = it.getStringOrNull(COLUMN_AUDIO_NAME),
+                tabNotes = it.getString(it.getColumnIndexOrThrow(COLUMN_TAB_NOTES)).toTabNotes(),
+                createdAt = it.getLong(it.getColumnIndexOrThrow(COLUMN_CREATED_AT))
+            )
+        }
+    }
+
     private fun List<TabNote>.toJson(): String {
         val jsonArray = JSONArray()
         forEach { note ->

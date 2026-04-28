@@ -54,4 +54,41 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    fun loadTabNotes(id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            val result = runCatching { repository.getTabNotesById(id) }
+
+            _uiState.update { state ->
+                result.fold(
+                    onSuccess = { entity ->
+                        if (entity == null) {
+                            state.copy(
+                                isLoading = false,
+                                errorMessage = "File not found"
+                            )
+                        } else {
+                            state.copy(
+                                isLoading = false,
+                                tabNotes = entity.tabNotes,
+                                fileName = entity.audioName
+                                    ?: getFileNameFromUri(
+                                        context = getApplication(),
+                                        filePath = entity.audioUri
+                                    )
+                            )
+                        }
+                    },
+                    onFailure = {
+                        state.copy(
+                            isLoading = false,
+                            errorMessage = it.message ?: "Load failed"
+                        )
+                    }
+                )
+            }
+        }
+    }
 }

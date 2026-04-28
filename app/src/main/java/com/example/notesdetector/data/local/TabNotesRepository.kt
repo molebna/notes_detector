@@ -18,6 +18,10 @@ class TabNotesRepository private constructor(context: Context) {
         return dbHelper.getLatestTabNotes()
     }
 
+    fun getTabNotesById(id: Long): TabNoteEntity? {
+        return dbHelper.getTabNotesById(id)
+    }
+
     fun getAllTabNotes(): List<TabNoteEntity> {
         return dbHelper.getAllTabNotes()
     }

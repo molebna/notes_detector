@@ -18,10 +18,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val notes: StateFlow<List<NotesFile>> = _notes
 
     init {
-        loadNotes()
+        refreshNotes()
     }
 
-    private fun loadNotes() {
+    fun refreshNotes() {
         viewModelScope.launch(Dispatchers.IO) {
             _notes.value = repository.getAllNotesFiles()
         }
