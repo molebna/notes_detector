@@ -14,6 +14,7 @@ import androidx.navigation.fragment.findNavController
 import com.example.notesdetector.R
 import com.example.notesdetector.databinding.FragmentTranscriptionBinding
 import kotlinx.coroutines.launch
+import androidx.navigation.NavOptions
 
 class TranscriptionFragment : Fragment() {
 
@@ -60,7 +61,13 @@ class TranscriptionFragment : Fragment() {
                     binding.errorText.text = state.errorMessage
 
                     if (state.navigateToResult) {
-                        findNavController().navigate(R.id.action_nav_transcription_to_nav_notesview)
+                        findNavController().navigate(
+                            R.id.action_nav_transcription_to_nav_notesview,
+                            null,
+                            NavOptions.Builder()
+                                .setPopUpTo(R.id.nav_home, false)
+                                .build()
+                        )
                         viewModel.onNavigated()
                     }
                 }

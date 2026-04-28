@@ -45,9 +45,28 @@ class TablatureView @JvmOverloads constructor(
 
         if (tabNotes.isEmpty()) return
 
-        val numRows = (tabNotes.size + notesPerRow - 1) / notesPerRow
+        val sorted = tabNotes.sortedBy { it.time }
+        val timeThreshold = 0.05f
 
-        // 🎸 1. Малюємо струни
+        val groups = mutableListOf<MutableList<TabNote>>()
+
+        for (note in sorted) {
+            val group = groups.lastOrNull()
+
+            if (group == null) {
+                groups.add(mutableListOf(note))
+            } else {
+                val diff = note.time - group.first().time
+                if (diff <= timeThreshold) {
+                    group.add(note)
+                } else {
+                    groups.add(mutableListOf(note))
+                }
+            }
+        }
+
+        val numRows = (groups.size + notesPerRow - 1) / notesPerRow
+
         for (row in 0 until numRows) {
             val baseY = row * rowHeight
 
@@ -57,26 +76,28 @@ class TablatureView @JvmOverloads constructor(
             }
         }
 
-        for ((index, note) in tabNotes.withIndex()) {
+        val stepX = (right - left) / (notesPerRow + 1)
 
-            val row = index / notesPerRow
-            val col = index % notesPerRow
+        for ((groupIndex, group) in groups.withIndex()) {
+
+            val row = groupIndex / notesPerRow
+            val col = groupIndex % notesPerRow
 
             val baseY = row * rowHeight
-
-            val y = baseY + stringSpacing * (6 - note.stringIndex)
-
-            val stepX = (right - left) / (notesPerRow + 1)
             val x = left + (col + 1) * stepX
 
-            val textOffset = (textPaint.descent() + textPaint.ascent()) / 2
+            for (note in group) {
+                val y = baseY + stringSpacing * (6 - note.stringIndex)
 
-            canvas.drawText(
-                note.fret.toString(),
-                x,
-                y - textOffset,
-                textPaint
-            )
+                val textOffset = (textPaint.descent() + textPaint.ascent()) / 2
+
+                canvas.drawText(
+                    note.fret.toString(),
+                    x,
+                    y - textOffset,
+                    textPaint
+                )
+            }
         }
     }
 }
