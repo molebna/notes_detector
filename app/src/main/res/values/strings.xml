@@ -12,4 +12,6 @@
     <string name="menu_slideshow">Slideshow</string>
     <string name="selected_audio">Selected audio</string>
     <string name="retry">Retry</string>
+    <string name="play_source_audio">Play source audio</string>
+    <string name="audio_play_error">Unable to play this audio file.</string>
 </resources>
