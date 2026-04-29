@@ -19,4 +19,8 @@
     <string name="delete_note_title">Delete file</string>
     <string name="delete_note_message">Delete "%1$s"?</string>
     <string name="delete_note_confirm">Delete</string>
+    <string name="selected_audio">Selected audio</string>
+    <string name="retry">Retry</string>
+    <string name="play_source_audio">Play source audio</string>
+    <string name="audio_play_error">Unable to play this audio file.</string>
 </resources>

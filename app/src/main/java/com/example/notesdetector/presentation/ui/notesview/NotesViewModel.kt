@@ -48,6 +48,7 @@ class NotesViewModel(
                             state.copy(
                                 isLoading = false,
                                 tabNotes = entity.tabNotes,
+                                audioUri = entity.audioUri,
                                 fileName = entity.audioName
                                     ?: getFileNameFromUri(context = getApplication(), filePath = entity.audioUri)
                             )
@@ -82,6 +83,7 @@ class NotesViewModel(
                             state.copy(
                                 isLoading = false,
                                 tabNotes = entity.tabNotes,
+                                audioUri = entity.audioUri,
                                 fileName = entity.audioName
                                     ?: getFileNameFromUri(
                                         context = getApplication(),
