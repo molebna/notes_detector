@@ -1,6 +1,7 @@
 package com.example.notesdetector
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -27,9 +28,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private val pickAudio =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
 
             if (uri != null) {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+
                 val navController =
                     findNavController(R.id.nav_host_fragment_content_main)
 
@@ -42,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            pickAudio.launch("audio/*")
+            pickAudio.launch(arrayOf("audio/*"))
         } else {
             Toast.makeText(this, "Permission is necessary", Toast.LENGTH_SHORT).show()
         }
@@ -74,7 +80,7 @@ class MainActivity : AppCompatActivity() {
 
                             when {
                                 ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED -> {
-                                    pickAudio.launch("audio/*")
+                                    pickAudio.launch(arrayOf("audio/*"))
                                 }
                                 ActivityCompat.shouldShowRequestPermissionRationale(this, permission) -> {
                                     //showRationaleDialog(permission)
