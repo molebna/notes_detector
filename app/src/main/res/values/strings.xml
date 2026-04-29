@@ -23,4 +23,14 @@
     <string name="retry">Retry</string>
     <string name="play_source_audio">Play source audio</string>
     <string name="audio_play_error">Unable to play this audio file.</string>
+    <string name="start_recording">Start recording</string>
+    <string name="stop_recording">Stop recording</string>
+    <string name="use_recording">Use this recording</string>
+    <string name="recording_idle">Tap start to record audio</string>
+    <string name="recording_in_progress">Recording…</string>
+    <string name="recording_ready">Recording is ready</string>
+    <string name="record_permission_denied">Microphone permission is required</string>
+    <string name="record_start_error">Could not start recording</string>
+    <string name="recording_saved">Recording saved</string>
+    <string name="no_recording_yet">Record audio first</string>
 </resources>
