@@ -30,6 +30,14 @@ class TabNotesRepository private constructor(context: Context) {
         return getAllTabNotes().map { NotesMapper.toNotesFile(it) }
     }
 
+    fun renameNoteFile(id: Long, newName: String): Boolean {
+        return dbHelper.renameTabNotes(id, newName)
+    }
+
+    fun deleteNoteFile(id: Long): Boolean {
+        return dbHelper.deleteTabNotes(id)
+    }
+
     companion object {
         @Volatile
         private var instance: TabNotesRepository? = null

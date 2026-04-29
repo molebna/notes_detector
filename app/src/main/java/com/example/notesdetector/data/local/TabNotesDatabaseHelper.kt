@@ -128,6 +128,31 @@ class TabNotesDatabaseHelper(context: Context) :
         }
     }
 
+    fun renameTabNotes(id: Long, newName: String): Boolean {
+        val values = ContentValues().apply {
+            put(COLUMN_AUDIO_NAME, newName)
+        }
+
+        val rowsUpdated = writableDatabase.update(
+            TABLE_TAB_TRANSCRIPTIONS,
+            values,
+            "$COLUMN_ID = ?",
+            arrayOf(id.toString())
+        )
+
+        return rowsUpdated > 0
+    }
+
+    fun deleteTabNotes(id: Long): Boolean {
+        val rowsDeleted = writableDatabase.delete(
+            TABLE_TAB_TRANSCRIPTIONS,
+            "$COLUMN_ID = ?",
+            arrayOf(id.toString())
+        )
+
+        return rowsDeleted > 0
+    }
+
     private fun List<TabNote>.toJson(): String {
         val jsonArray = JSONArray()
         forEach { note ->
