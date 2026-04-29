@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/recordStatusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/purple_purse"
+        android:textColor="@color/beige"
+        android:textSize="22sp" />
+
+    <Button
+        android:id="@+id/startRecordingButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:fontFamily="@font/purple_purse"
+        android:text="@string/start_recording" />
+
+    <Button
+        android:id="@+id/stopRecordingButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fontFamily="@font/purple_purse"
+        android:text="@string/stop_recording" />
+
+    <Button
+        android:id="@+id/useRecordingButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:fontFamily="@font/purple_purse"
+        android:text="@string/use_recording" />
+
+</LinearLayout>

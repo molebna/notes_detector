@@ -9,7 +9,6 @@ import android.view.Menu
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
-import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.navigation.NavigationView
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -35,14 +34,10 @@ class MainActivity : AppCompatActivity() {
                     uri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
-
-                val navController =
-                    findNavController(R.id.nav_host_fragment_content_main)
-
-                navController.navigate(R.id.action_nav_home_to_nav_transcription)
-                navController.getBackStackEntry(R.id.nav_transcription).savedStateHandle[TranscriptionFragment.AUDIO_URI_KEY] = uri.toString()
+                openTranscriptionWithAudio(uri.toString())
             }
         }
+
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -52,6 +47,16 @@ class MainActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "Permission is necessary", Toast.LENGTH_SHORT).show()
         }
+    }
+
+
+    private fun openTranscriptionWithAudio(audioUri: String) {
+        val navController =
+            findNavController(R.id.nav_host_fragment_content_main)
+
+        navController.navigate(R.id.action_nav_home_to_nav_transcription)
+        navController.getBackStackEntry(R.id.nav_transcription)
+            .savedStateHandle[TranscriptionFragment.AUDIO_URI_KEY] = audioUri
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,7 +97,8 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         1 -> {
-                            // TODO перейти на екран запису
+                            findNavController(R.id.nav_host_fragment_content_main)
+                                .navigate(R.id.action_nav_home_to_nav_record_audio)
                         }
                     }
 

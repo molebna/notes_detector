@@ -13,6 +13,18 @@
         <action
             android:id="@+id/action_nav_home_to_nav_transcription"
             app:destination="@id/nav_transcription" />
+        <action
+            android:id="@+id/action_nav_home_to_nav_record_audio"
+            app:destination="@id/nav_record_audio" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_record_audio"
+        android:name="com.example.notesdetector.presentation.ui.record.RecordAudioFragment"
+        android:label=""
+        tools:layout="@layout/fragment_record_audio">
+        <action
+            android:id="@+id/action_nav_record_audio_to_nav_transcription"
+            app:destination="@id/nav_transcription" />
     </fragment>
 
     <fragment
