@@ -10,4 +10,13 @@
     <string name="menu_home">Notes Transcriber</string>
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
+    <string name="note_action_rename">Rename</string>
+    <string name="note_action_delete">Delete</string>
+    <string name="rename_note_title">Rename file</string>
+    <string name="rename_note_hint">Enter a new file name</string>
+    <string name="rename_note_confirm">Save</string>
+    <string name="rename_note_empty_error">File name cannot be empty</string>
+    <string name="delete_note_title">Delete file</string>
+    <string name="delete_note_message">Delete "%1$s"?</string>
+    <string name="delete_note_confirm">Delete</string>
 </resources>

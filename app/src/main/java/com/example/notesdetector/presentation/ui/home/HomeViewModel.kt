@@ -26,4 +26,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _notes.value = repository.getAllNotesFiles()
         }
     }
+
+    fun renameNoteFile(id: Long, newName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (repository.renameNoteFile(id, newName)) {
+                _notes.value = repository.getAllNotesFiles()
+            }
+        }
+    }
+
+    fun deleteNoteFile(id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (repository.deleteNoteFile(id)) {
+                _notes.value = repository.getAllNotesFiles()
+            }
+        }
+    }
 }
