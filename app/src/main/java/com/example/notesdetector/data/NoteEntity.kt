@@ -1,6 +1,6 @@
 package com.example.notesdetector.data
 
-data class TabNoteEntity(
+data class NoteEntity(
     val id: Long,
     val audioUri: String,
     val audioName: String?,

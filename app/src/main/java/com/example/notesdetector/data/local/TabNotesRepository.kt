@@ -4,7 +4,7 @@ import android.content.Context
 import com.example.notesdetector.data.NoteEvent
 import com.example.notesdetector.data.NotesFile
 import com.example.notesdetector.data.TabNote
-import com.example.notesdetector.data.TabNoteEntity
+import com.example.notesdetector.data.NoteEntity
 import com.example.notesdetector.domain.transcription.NotesMapper
 
 class TabNotesRepository private constructor(context: Context) {
@@ -20,15 +20,15 @@ class TabNotesRepository private constructor(context: Context) {
         return dbHelper.saveTabNotes(audioUri, audioName, tabNotes, noteEvents)
     }
 
-    fun getLatestTabNotes(): TabNoteEntity? {
+    fun getLatestTabNotes(): NoteEntity? {
         return dbHelper.getLatestTabNotes()
     }
 
-    fun getTabNotesById(id: Long): TabNoteEntity? {
+    fun getTabNotesById(id: Long): NoteEntity? {
         return dbHelper.getTabNotesById(id)
     }
 
-    fun getAllTabNotes(): List<TabNoteEntity> {
+    fun getAllTabNotes(): List<NoteEntity> {
         return dbHelper.getAllTabNotes()
     }
 

@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:gravity="center"
     android:orientation="vertical"
     android:padding="24dp">
@@ -20,7 +21,9 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:fontFamily="@font/purple_purse"
-        android:text="@string/start_recording" />
+        android:text="@string/start_recording"
+        android:textColor="@color/dark_brown"
+        app:backgroundTint="@color/beige" />
 
     <Button
         android:id="@+id/stopRecordingButton"
@@ -28,14 +31,18 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:fontFamily="@font/purple_purse"
-        android:text="@string/stop_recording" />
+        android:text="@string/stop_recording"
+        android:textColor="@color/dark_brown"
+        app:backgroundTint="@color/beige"/>
 
     <Button
         android:id="@+id/useRecordingButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="48dp"
         android:fontFamily="@font/purple_purse"
-        android:text="@string/use_recording" />
+        android:text="@string/use_recording"
+        android:textColor="@color/dark_brown"
+        app:backgroundTint="@color/beige"/>
 
 </LinearLayout>

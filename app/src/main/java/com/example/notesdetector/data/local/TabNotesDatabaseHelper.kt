@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.example.notesdetector.data.NoteEvent
 import com.example.notesdetector.data.TabNote
-import com.example.notesdetector.data.TabNoteEntity
+import com.example.notesdetector.data.NoteEntity
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -63,7 +63,7 @@ class TabNotesDatabaseHelper(context: Context) :
         return writableDatabase.insert(TABLE_TAB_TRANSCRIPTIONS, null, values)
     }
 
-    fun getLatestTabNotes(): TabNoteEntity? {
+    fun getLatestTabNotes(): NoteEntity? {
         val cursor = readableDatabase.query(
             TABLE_TAB_TRANSCRIPTIONS,
             null,
@@ -77,7 +77,7 @@ class TabNotesDatabaseHelper(context: Context) :
 
         cursor.use {
             if (!it.moveToFirst()) return null
-            return TabNoteEntity(
+            return NoteEntity(
                 id = it.getLong(it.getColumnIndexOrThrow(COLUMN_ID)),
                 audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
                 audioName = it.getStringOrNull(COLUMN_AUDIO_NAME),
@@ -88,8 +88,8 @@ class TabNotesDatabaseHelper(context: Context) :
         }
     }
 
-    fun getAllTabNotes(): List<TabNoteEntity> {
-        val result = mutableListOf<TabNoteEntity>()
+    fun getAllTabNotes(): List<NoteEntity> {
+        val result = mutableListOf<NoteEntity>()
 
         val cursor = readableDatabase.query(
             TABLE_TAB_TRANSCRIPTIONS,
@@ -104,7 +104,7 @@ class TabNotesDatabaseHelper(context: Context) :
         cursor.use {
             if (it.moveToFirst()) {
                 do {
-                    val entity = TabNoteEntity(
+                    val entity = NoteEntity(
                         id = it.getLong(it.getColumnIndexOrThrow(COLUMN_ID)),
                         audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
                         audioName = it.getStringOrNull(COLUMN_AUDIO_NAME),
@@ -122,7 +122,7 @@ class TabNotesDatabaseHelper(context: Context) :
         return result
     }
 
-    fun getTabNotesById(id: Long): TabNoteEntity? {
+    fun getTabNotesById(id: Long): NoteEntity? {
         val cursor = readableDatabase.query(
             TABLE_TAB_TRANSCRIPTIONS,
             null,
@@ -136,7 +136,7 @@ class TabNotesDatabaseHelper(context: Context) :
         cursor.use {
             if (!it.moveToFirst()) return null
 
-            return TabNoteEntity(
+            return NoteEntity(
                 id = it.getLong(it.getColumnIndexOrThrow(COLUMN_ID)),
                 audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
                 audioName = it.getStringOrNull(COLUMN_AUDIO_NAME),
@@ -172,6 +172,7 @@ class TabNotesDatabaseHelper(context: Context) :
         return rowsDeleted > 0
     }
 
+    @JvmName("tabNotesToJson")
     private fun List<TabNote>.toJson(): String {
         val jsonArray = JSONArray()
         forEach { note ->
@@ -202,6 +203,7 @@ class TabNotesDatabaseHelper(context: Context) :
         }
     }
 
+    @JvmName("noteEventsToJson")
     private fun List<NoteEvent>.toJson(): String {
         val jsonArray = JSONArray()
         forEach { note ->
