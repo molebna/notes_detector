@@ -122,9 +122,16 @@ class SheetMusicView @JvmOverloads constructor(
         val desiredStaffH = (w * 0.12f).coerceIn(34 * dp, 52 * dp)
         val horizontalPadding = 36 * dp
         val availableForNotes = (w - horizontalPadding).coerceAtLeast(1f)
-        val approxNoteSpacing = 18 * dp
-        val maxNotesPerRow = max(1, (availableForNotes / approxNoteSpacing).toInt())
-        rowCount = max(1, ceil(notes.size / maxNotesPerRow.toFloat()).toInt())
+        val approxSlotSpacing = 36 * dp
+        val maxSlotsPerRow = max(1f, availableForNotes / approxSlotSpacing)
+        val weightedSlots = notes.sumOf { note ->
+            when (midiToStaffStep(note.midi).second) {
+                1 -> 1.8
+                -1 -> 1.5
+                else -> 1.0
+            }
+        }.toFloat().coerceAtLeast(1f)
+        rowCount = max(1, ceil(weightedSlots / maxSlotsPerRow).toInt())
 
         rowHeight = desiredStaffH * 2.3f
         val contentHeight = rowHeight * rowCount
@@ -256,8 +263,8 @@ class SheetMusicView @JvmOverloads constructor(
     private fun noteSlotWeight(note: NoteEvent): Float {
         val (_, accidental) = midiToStaffStep(note.midi)
         return when (accidental) {
-            1 -> 1.45f   // Sharps need extra horizontal room for the ♯ sign
-            -1 -> 1.30f  // Flats also need extra room
+            1 -> 1.8f   // Sharps need noticeably more horizontal room
+            -1 -> 1.5f   // Flats also need extra room
             else -> 1f
         }
     }
@@ -309,8 +316,7 @@ class SheetMusicView @JvmOverloads constructor(
         // ── Accidental ───────────────────────────────────────────────────────
         if (accidental != 0) {
             val symbol = if (accidental == 1) "♯" else "♭"
-            canvas.drawText(symbol, x - noteRadiusW - lineSpacing * 0.55f, noteY + noteRadius * 0.38f, accidentalPaint)
-        }
+            canvas.drawText(symbol, x - noteRadiusW - lineSpacing * 0.5f, noteY + noteRadius * 0.38f, accidentalPaint)        }
 
         // ── Note head ────────────────────────────────────────────────────────
         val oval = RectF(
