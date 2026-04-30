@@ -16,13 +16,17 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.notesdetector.R
 import com.example.notesdetector.presentation.ui.views.TablatureView
+import com.example.notesdetector.presentation.ui.views.SheetMusicView
 import kotlinx.coroutines.launch
 
 class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
 
     private val viewModel: NotesViewModel by viewModels()
 
+    private var isTabMode = true
+
     private lateinit var tabView: TablatureView
+    private lateinit var sheetMusicView: SheetMusicView
     private lateinit var fileNameText: android.widget.TextView
     private var audioUri: String? = null
     private var mediaPlayer: MediaPlayer? = null
@@ -32,6 +36,8 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
     private lateinit var pauseButton: Button
     private lateinit var stopButton: Button
 
+    private lateinit var toggleNotesView: Button
+
     private val handler = Handler(Looper.getMainLooper())
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -39,15 +45,18 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
 
         fileNameText = view.findViewById(R.id.fileNameText)
         tabView = view.findViewById(R.id.tabView)
+        sheetMusicView = view.findViewById(R.id.sheetMusicView)
 
         seekBar = view.findViewById(R.id.seekBar)
         playButton = view.findViewById(R.id.playButton)
         pauseButton = view.findViewById(R.id.pauseButton)
         stopButton = view.findViewById(R.id.stopButton)
+        toggleNotesView = view.findViewById(R.id.toggleNotesView)
 
         playButton.setOnClickListener { playAudio() }
         pauseButton.setOnClickListener { pauseAudio() }
         stopButton.setOnClickListener { stopAudio() }
+        toggleNotesView.setOnClickListener { toggleNotesView() }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -69,6 +78,7 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
                 viewModel.uiState.collect { state ->
                     fileNameText.text = state.errorMessage ?: state.fileName
                     tabView.setNotes(state.tabNotes)
+                    sheetMusicView.setNotes(state.noteEvents)
                     audioUri = state.audioUri
                 }
             }
@@ -138,5 +148,20 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
                 }
             }
         })
+    }
+
+    private fun toggleNotesView() {
+
+        isTabMode = !isTabMode
+
+        if (isTabMode) {
+            tabView.visibility = View.VISIBLE
+            sheetMusicView.visibility = View.GONE
+            toggleNotesView.text = "Show Notes"
+        } else {
+            tabView.visibility = View.GONE
+            sheetMusicView.visibility = View.VISIBLE
+            toggleNotesView.text = "Show Tabs"
+        }
     }
 }

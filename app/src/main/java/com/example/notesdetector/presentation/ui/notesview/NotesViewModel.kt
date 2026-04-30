@@ -26,13 +26,13 @@ class NotesViewModel(
     init {
         val tabNoteId = savedStateHandle.get<Long>("tabNoteId")
         if (tabNoteId == null || tabNoteId == -1L) {
-            loadLatestTabNotes()
+            loadLatestNotes()
         } else {
-            loadTabNotes(tabNoteId)
+            loadNotes(tabNoteId)
         }
     }
 
-    fun loadLatestTabNotes() {
+    fun loadLatestNotes() {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val result = runCatching { repository.getLatestTabNotes() }
@@ -48,6 +48,7 @@ class NotesViewModel(
                             state.copy(
                                 isLoading = false,
                                 tabNotes = entity.tabNotes,
+                                noteEvents = entity.noteEvents,
                                 audioUri = entity.audioUri,
                                 fileName = entity.audioName
                                     ?: getFileNameFromUri(context = getApplication(), filePath = entity.audioUri)
@@ -65,7 +66,7 @@ class NotesViewModel(
         }
     }
 
-    fun loadTabNotes(id: Long) {
+    fun loadNotes(id: Long) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
@@ -83,6 +84,7 @@ class NotesViewModel(
                             state.copy(
                                 isLoading = false,
                                 tabNotes = entity.tabNotes,
+                                noteEvents = entity.noteEvents,
                                 audioUri = entity.audioUri,
                                 fileName = entity.audioName
                                     ?: getFileNameFromUri(
