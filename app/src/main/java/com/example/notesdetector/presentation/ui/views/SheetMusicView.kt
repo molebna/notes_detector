@@ -5,6 +5,8 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
 import com.example.notesdetector.data.NoteEvent
+import kotlin.math.ceil
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 class SheetMusicView @JvmOverloads constructor(
@@ -42,6 +44,8 @@ class SheetMusicView @JvmOverloads constructor(
     private var noteAreaWidth  = 0f   // usable width for time mapping
 
     private var viewHeight     = 0f
+    private var rowCount       = 1
+    private var rowHeight      = 0f
 
     // ─── State ───────────────────────────────────────────────────────────────
 
@@ -106,10 +110,18 @@ class SheetMusicView @JvmOverloads constructor(
         val w = MeasureSpec.getSize(widthMeasureSpec).takeIf { it > 0 }
             ?: (300 * dp).toInt()
 
-        // Staff height ≈ 28 % of width, clamped between 80 dp and 160 dp
-        val desiredStaffH = (w * 0.28f).coerceIn(80 * dp, 160 * dp)
-        val totalH = (desiredStaffH * 3.6f).roundToInt()   // room for ledger lines + clef
-        setMeasuredDimension(w, totalH)
+        val desiredStaffH = (w * 0.12f).coerceIn(34 * dp, 52 * dp)
+        val horizontalPadding = 36 * dp
+        val availableForNotes = (w - horizontalPadding).coerceAtLeast(1f)
+        val approxNoteSpacing = 18 * dp
+        val maxNotesPerRow = max(1, (availableForNotes / approxNoteSpacing).toInt())
+        rowCount = max(1, ceil(notes.size / maxNotesPerRow.toFloat()).toInt())
+
+        rowHeight = desiredStaffH * 2.3f
+        val contentHeight = rowHeight * rowCount
+        val minHeight = 160 * dp
+        val totalH = max(contentHeight, minHeight).roundToInt()
+        setMeasuredDimension(w, resolveSize(totalH, heightMeasureSpec))
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -120,14 +132,14 @@ class SheetMusicView @JvmOverloads constructor(
         marginRight   = 16 * dp
 
         // Five staff lines → 4 gaps
-        staffHeight   = h * 0.40f
+        staffHeight   = (h * 0.16f).coerceIn(34 * dp, 52 * dp)
         lineSpacing   = staffHeight / 4f
         noteRadius    = lineSpacing * 0.52f
         noteRadiusW   = noteRadius  * 1.55f
         stemLength    = lineSpacing * 3.5f
 
-        // Centre the staff vertically (a bit above mid to leave ledger room below)
-        staffTop      = h * 0.28f
+        // row-based drawing, staffTop is assigned per-row in draw methods
+        staffTop      = 0f
 
         clefWidth     = lineSpacing * 4.5f
         timeSigWidth  = lineSpacing * 2.5f
@@ -152,10 +164,6 @@ class SheetMusicView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        drawStaff(canvas)
-        drawClef(canvas)
-        drawTimeSignature(canvas)
-        drawBarlines(canvas)
         if (notes.isNotEmpty()) drawNotes(canvas)
     }
 
@@ -257,29 +265,35 @@ class SheetMusicView @JvmOverloads constructor(
     // ── Bar lines (every 4 beats, derived from note timing) ──────────────────
 
     private fun drawBarlines(canvas: Canvas) {
-        if (notes.isEmpty()) return
-        val totalDur = notes.maxOf { it.endSec }
-        if (totalDur <= 0f) return
-
-        // Assume quarter-note = 0.5 s (120 bpm) as default; draw every ~2 s (4 beats)
-        val barDuration = 2.0f
-        var t = barDuration
-        while (t < totalDur) {
-            val x = timeToX(t, totalDur)
-            canvas.drawLine(x, staffTop, x, staffTop + staffHeight, barlinePaint)
-            t += barDuration
-        }
+        // per-row barlines are drawn in drawNotes()
     }
 
     // ─── Note rendering ───────────────────────────────────────────────────────
 
     private fun drawNotes(canvas: Canvas) {
-        val totalDur = notes.maxOf { it.endSec }
-        if (totalDur <= 0f) return
+        if (notes.isEmpty()) return
 
-        for (note in notes) {
-            val x = timeToX(note.startSec, totalDur)
-            drawNote(canvas, note, x)
+        val rows = notes.chunked(max(1, ceil(notes.size / rowCount.toFloat()).toInt()))
+        rows.forEachIndexed { rowIndex, rowNotes ->
+            val rowTop = rowIndex * rowHeight + 24 * dp
+            staffTop = rowTop
+            drawStaff(canvas)
+            drawClef(canvas)
+            drawTimeSignature(canvas)
+
+            val totalDur = rowNotes.maxOf { it.endSec }.coerceAtLeast(0.001f)
+            rowNotes.forEach { note ->
+                val x = timeToX(note.startSec, totalDur)
+                drawNote(canvas, note, x)
+            }
+
+            val barDuration = 2.0f
+            var t = barDuration
+            while (t < totalDur) {
+                val x = timeToX(t, totalDur)
+                canvas.drawLine(x, staffTop, x, staffTop + staffHeight, barlinePaint)
+                t += barDuration
+            }
         }
     }
 
