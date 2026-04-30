@@ -234,10 +234,15 @@ class SheetMusicView @JvmOverloads constructor(
             drawClef(canvas)
             drawTimeSignature(canvas)
 
-            val spacing = noteAreaWidth / (rowNotes.size + 1).toFloat()
+            val slotWeights = rowNotes.map { noteSlotWeight(it) }
+            val totalWeight = slotWeights.sum().coerceAtLeast(1f)
+            var consumedWeight = 0f
+
             rowNotes.forEachIndexed { noteIndex, note ->
-                val x = noteAreaStart + spacing * (noteIndex + 1)
+                val centerWeight = consumedWeight + slotWeights[noteIndex] / 2f
+                val x = noteAreaStart + (centerWeight / totalWeight) * noteAreaWidth
                 drawNote(canvas, note, x)
+                consumedWeight += slotWeights[noteIndex]
             }
 
 //            val barsPerRow = 4
@@ -245,6 +250,15 @@ class SheetMusicView @JvmOverloads constructor(
 //                val x = noteAreaStart + (bar / barsPerRow.toFloat()) * noteAreaWidth
 //                canvas.drawLine(x, staffTop, x, staffTop + staffHeight, barlinePaint)
 //            }
+        }
+    }
+
+    private fun noteSlotWeight(note: NoteEvent): Float {
+        val (_, accidental) = midiToStaffStep(note.midi)
+        return when (accidental) {
+            1 -> 1.45f   // Sharps need extra horizontal room for the ♯ sign
+            -1 -> 1.30f  // Flats also need extra room
+            else -> 1f
         }
     }
 
