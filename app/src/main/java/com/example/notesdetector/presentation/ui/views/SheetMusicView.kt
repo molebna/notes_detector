@@ -234,22 +234,15 @@ class SheetMusicView @JvmOverloads constructor(
             drawClef(canvas)
             drawTimeSignature(canvas)
 
-            val totalDur = rowNotes.maxOf { it.endSec }.coerceAtLeast(0.001f)
-            val slotWeights = rowNotes.map { note ->
-                val (_, accidental) = midiToStaffStep(note.midi)
-                if (accidental != 0) 1.55f else 1f
-            }
-            val totalSlots = slotWeights.sum().coerceAtLeast(1f)
-            var consumedSlots = 0f
+            val slotWeights = rowNotes.map { noteSlotWeight(it) }
+            val totalWeight = slotWeights.sum().coerceAtLeast(1f)
+            var consumedWeight = 0f
 
             rowNotes.forEachIndexed { noteIndex, note ->
-                val currentWeight = slotWeights[noteIndex]
-                val slotCenter = consumedSlots + currentWeight / 2f
-                val xByIndex = noteAreaStart + (slotCenter / totalSlots) * noteAreaWidth
-                val xByTime = timeToX(note.startSec, totalDur)
-                val x = xByIndex * 0.8f + xByTime * 0.2f
+                val centerWeight = consumedWeight + slotWeights[noteIndex] / 2f
+                val x = noteAreaStart + (centerWeight / totalWeight) * noteAreaWidth
                 drawNote(canvas, note, x)
-                consumedSlots += currentWeight
+                consumedWeight += slotWeights[noteIndex]
             }
 
 //            val barsPerRow = 4
@@ -257,6 +250,32 @@ class SheetMusicView @JvmOverloads constructor(
 //                val x = noteAreaStart + (bar / barsPerRow.toFloat()) * noteAreaWidth
 //                canvas.drawLine(x, staffTop, x, staffTop + staffHeight, barlinePaint)
 //            }
+        }
+    }
+
+    private fun noteSlotWeight(note: NoteEvent): Float {
+        val (_, accidental) = midiToStaffStep(note.midi)
+        return when (accidental) {
+            1 -> 1.45f   // Sharps need extra horizontal room for the ♯ sign
+            -1 -> 1.30f  // Flats also need extra room
+            else -> 1f
+        }
+    }
+
+    private enum class NoteGlyph {
+        WHOLE,
+        HALF,
+        QUARTER,
+        EIGHTH
+    }
+
+    private fun resolveNoteGlyph(note: NoteEvent): NoteGlyph {
+        val duration = (note.endSec - note.startSec).coerceAtLeast(0f)
+        return when {
+            duration >= 1.6f -> NoteGlyph.WHOLE
+            duration >= 0.9f -> NoteGlyph.HALF
+            duration >= 0.45f -> NoteGlyph.QUARTER
+            else -> NoteGlyph.EIGHTH
         }
     }
 
@@ -278,7 +297,10 @@ class SheetMusicView @JvmOverloads constructor(
         val bottomLineY = staffTop + staffHeight
         val noteY       = bottomLineY - staffStep * (lineSpacing / 2f)
 
-        val isFilled    = true   // whole notes would be hollow; use filled for all for now
+        val glyph = resolveNoteGlyph(note)
+        val isFilled = glyph == NoteGlyph.QUARTER || glyph == NoteGlyph.EIGHTH
+        val hasStem = glyph != NoteGlyph.WHOLE
+        val hasFlag = glyph == NoteGlyph.EIGHTH
         val stemUp      = staffStep < 4   // stem up when below middle of staff
 
         // ── Ledger lines ─────────────────────────────────────────────────────
@@ -308,10 +330,35 @@ class SheetMusicView @JvmOverloads constructor(
         canvas.restore()
 
         // ── Stem ─────────────────────────────────────────────────────────────
-        val stemX   = if (stemUp) x + noteRadiusW else x - noteRadiusW
-        val stemY0  = noteY + (if (stemUp) -noteRadius * 0.3f else noteRadius * 0.3f)
-        val stemY1  = if (stemUp) noteY - stemLength else noteY + stemLength
-        canvas.drawLine(stemX, stemY0, stemX, stemY1, stemPaint)
+        if (hasStem) {
+            val stemX   = if (stemUp) x + noteRadiusW else x - noteRadiusW
+            val stemY0  = noteY + (if (stemUp) -noteRadius * 0.3f else noteRadius * 0.3f)
+            val stemY1  = if (stemUp) noteY - stemLength else noteY + stemLength
+            canvas.drawLine(stemX, stemY0, stemX, stemY1, stemPaint)
+
+            if (hasFlag) {
+                val flagPath = Path().apply {
+                    if (stemUp) {
+                        moveTo(stemX, stemY1)
+                        quadTo(
+                            stemX + lineSpacing * 0.95f,
+                            stemY1 + lineSpacing * 0.35f,
+                            stemX + lineSpacing * 0.28f,
+                            stemY1 + lineSpacing * 1.05f
+                        )
+                    } else {
+                        moveTo(stemX, stemY1)
+                        quadTo(
+                            stemX - lineSpacing * 0.95f,
+                            stemY1 - lineSpacing * 0.35f,
+                            stemX - lineSpacing * 0.28f,
+                            stemY1 - lineSpacing * 1.05f
+                        )
+                    }
+                }
+                canvas.drawPath(flagPath, stemPaint)
+            }
+        }
     }
 
     // ── Ledger lines ─────────────────────────────────────────────────────────
@@ -390,12 +437,5 @@ class SheetMusicView @JvmOverloads constructor(
         val staffStep = noteSteps - referenceSteps
 
         return Pair(staffStep, accidental)
-    }
-
-    // ─── Coordinate mapping ───────────────────────────────────────────────────
-
-    private fun timeToX(timeSec: Float, totalDuration: Float): Float {
-        val t = (timeSec / totalDuration).coerceIn(0f, 1f)
-        return noteAreaStart + t * noteAreaWidth
     }
 }
