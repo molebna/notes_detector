@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.example.notesdetector.data.NoteEvent
 import com.example.notesdetector.data.TabNote
 import com.example.notesdetector.data.TabNoteEntity
 import org.json.JSONArray
@@ -20,6 +21,7 @@ class TabNotesDatabaseHelper(context: Context) :
                 $COLUMN_AUDIO_URI TEXT NOT NULL,
                 $COLUMN_AUDIO_NAME TEXT,
                 $COLUMN_TAB_NOTES TEXT NOT NULL,
+                $COLUMN_NOTE_EVENTS TEXT,
                 $COLUMN_CREATED_AT INTEGER NOT NULL
             )
             """.trimIndent()
@@ -35,13 +37,27 @@ class TabNotesDatabaseHelper(context: Context) :
                 """.trimIndent()
             )
         }
+        if (oldVersion < 3) {
+            db.execSQL(
+                """
+                ALTER TABLE $TABLE_TAB_TRANSCRIPTIONS
+                ADD COLUMN $COLUMN_NOTE_EVENTS TEXT
+                """.trimIndent()
+            )
+        }
     }
 
-    fun saveTabNotes(audioUri: String, audioName: String?, tabNotes: List<TabNote>): Long {
+    fun saveTabNotes(
+        audioUri: String,
+        audioName: String?,
+        tabNotes: List<TabNote>,
+        noteEvents: List<NoteEvent>
+    ): Long {
         val values = ContentValues().apply {
             put(COLUMN_AUDIO_URI, audioUri)
             put(COLUMN_AUDIO_NAME, audioName)
             put(COLUMN_TAB_NOTES, tabNotes.toJson())
+            put(COLUMN_NOTE_EVENTS, noteEvents.toJson())
             put(COLUMN_CREATED_AT, System.currentTimeMillis())
         }
         return writableDatabase.insert(TABLE_TAB_TRANSCRIPTIONS, null, values)
@@ -66,6 +82,7 @@ class TabNotesDatabaseHelper(context: Context) :
                 audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
                 audioName = it.getStringOrNull(COLUMN_AUDIO_NAME),
                 tabNotes = it.getString(it.getColumnIndexOrThrow(COLUMN_TAB_NOTES)).toTabNotes(),
+                noteEvents = it.getStringOrNull(COLUMN_NOTE_EVENTS)?.toNoteEvents().orEmpty(),
                 createdAt = it.getLong(it.getColumnIndexOrThrow(COLUMN_CREATED_AT))
             )
         }
@@ -92,6 +109,7 @@ class TabNotesDatabaseHelper(context: Context) :
                         audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
                         audioName = it.getStringOrNull(COLUMN_AUDIO_NAME),
                         tabNotes = it.getString(it.getColumnIndexOrThrow(COLUMN_TAB_NOTES)).toTabNotes(),
+                        noteEvents = it.getStringOrNull(COLUMN_NOTE_EVENTS)?.toNoteEvents().orEmpty(),
                         createdAt = it.getLong(it.getColumnIndexOrThrow(COLUMN_CREATED_AT))
                     )
 
@@ -123,6 +141,7 @@ class TabNotesDatabaseHelper(context: Context) :
                 audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
                 audioName = it.getStringOrNull(COLUMN_AUDIO_NAME),
                 tabNotes = it.getString(it.getColumnIndexOrThrow(COLUMN_TAB_NOTES)).toTabNotes(),
+                noteEvents = it.getStringOrNull(COLUMN_NOTE_EVENTS)?.toNoteEvents().orEmpty(),
                 createdAt = it.getLong(it.getColumnIndexOrThrow(COLUMN_CREATED_AT))
             )
         }
@@ -183,6 +202,40 @@ class TabNotesDatabaseHelper(context: Context) :
         }
     }
 
+    private fun List<NoteEvent>.toJson(): String {
+        val jsonArray = JSONArray()
+        forEach { note ->
+            jsonArray.put(
+                JSONObject().apply {
+                    put("startSec", note.startSec.toDouble())
+                    put("endSec", note.endSec.toDouble())
+                    put("midi", note.midi)
+                    put("name", note.name)
+                    put("peak", note.peak.toDouble())
+                }
+            )
+        }
+        return jsonArray.toString()
+    }
+
+    private fun String.toNoteEvents(): List<NoteEvent> {
+        val array = JSONArray(this)
+        return buildList {
+            for (index in 0 until array.length()) {
+                val note = array.getJSONObject(index)
+                add(
+                    NoteEvent(
+                        startSec = note.getDouble("startSec").toFloat(),
+                        endSec = note.getDouble("endSec").toFloat(),
+                        midi = note.getInt("midi"),
+                        name = note.getString("name"),
+                        peak = note.getDouble("peak").toFloat()
+                    )
+                )
+            }
+        }
+    }
+
     private fun android.database.Cursor.getStringOrNull(columnName: String): String? {
         val columnIndex = getColumnIndex(columnName)
         if (columnIndex == -1 || isNull(columnIndex)) return null
@@ -191,13 +244,14 @@ class TabNotesDatabaseHelper(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "tab_notes.db"
-        private const val DATABASE_VERSION = 2
+        private const val DATABASE_VERSION = 3
 
         private const val TABLE_TAB_TRANSCRIPTIONS = "tab_transcriptions"
         private const val COLUMN_ID = "id"
         private const val COLUMN_AUDIO_URI = "audio_uri"
         private const val COLUMN_AUDIO_NAME = "audio_name"
         private const val COLUMN_TAB_NOTES = "tab_notes"
+        private const val COLUMN_NOTE_EVENTS = "note_events"
         private const val COLUMN_CREATED_AT = "created_at"
     }
 }
