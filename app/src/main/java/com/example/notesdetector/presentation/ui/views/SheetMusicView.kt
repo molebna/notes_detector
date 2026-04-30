@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
+import com.example.notesdetector.R
 import com.example.notesdetector.data.NoteEvent
 import kotlin.math.ceil
 import kotlin.math.max
@@ -38,6 +39,7 @@ class SheetMusicView @JvmOverloads constructor(
     // Horizontal layout
     private var marginLeft     = 0f
     private var marginRight    = 0f
+    private var clefHeight      = 0f
     private var clefWidth      = 0f
     private var timeSigWidth   = 0f
     private var noteAreaStart  = 0f   // x where notes begin
@@ -54,55 +56,62 @@ class SheetMusicView @JvmOverloads constructor(
     // ─── Paints ──────────────────────────────────────────────────────────────
 
     private val staffPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
+        color = Color.WHITE
         strokeWidth = 1.5f * dp
         style = Paint.Style.STROKE
     }
 
     private val barlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
+        color = Color.WHITE
         strokeWidth = 1.5f * dp
         style = Paint.Style.STROKE
     }
 
     private val noteFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
+        color = Color.WHITE
         style = Paint.Style.FILL
     }
 
     private val noteStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
+        color = Color.WHITE
         style = Paint.Style.STROKE
     }
 
     private val stemPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
+        color = Color.WHITE
         style = Paint.Style.STROKE
     }
 
     private val ledgerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
+        color = Color.WHITE
         style = Paint.Style.STROKE
     }
 
     private val accidentalPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
+        color = Color.WHITE
         style = Paint.Style.FILL_AND_STROKE
         textAlign = Paint.Align.CENTER
     }
 
     private val clefPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
+        color = Color.WHITE
         style = Paint.Style.FILL_AND_STROKE
         textAlign = Paint.Align.LEFT
     }
 
     private val timeSigPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.BLACK
+        color = Color.WHITE
         style = Paint.Style.FILL
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
     }
+
+    // ─── Cleff  ─────────────────────────────────────────────────────────────
+
+    private val clefBitmap = BitmapFactory.decodeResource(
+        resources,
+        R.drawable.music_key
+    )
 
     // ─── Measure / layout ────────────────────────────────────────────────────
 
@@ -141,12 +150,12 @@ class SheetMusicView @JvmOverloads constructor(
         // row-based drawing, staffTop is assigned per-row in draw methods
         staffTop      = 0f
 
-        clefWidth     = lineSpacing * 4.5f
+        clefHeight = staffHeight * 1.8f
+        clefWidth = clefHeight * (clefBitmap.width.toFloat() / clefBitmap.height)
         timeSigWidth  = lineSpacing * 2.5f
 
-        marginLeft    = 18 * dp
-        noteAreaStart = marginLeft + clefWidth + timeSigWidth + 8 * dp
-        noteAreaWidth = w - noteAreaStart - marginRight
+        noteAreaStart = marginLeft + clefWidth + timeSigWidth
+        noteAreaWidth = w - noteAreaStart - marginRight - 24 * dp
 
         // Update stroke widths relative to lineSpacing
         staffPaint.strokeWidth   = lineSpacing * 0.075f
@@ -189,83 +198,27 @@ class SheetMusicView @JvmOverloads constructor(
     // ── Treble clef (drawn with paths, no font dependency) ───────────────────
 
     private fun drawClef(canvas: Canvas) {
-        // We draw a simplified but recognisable treble clef using a series of
-        // Bezier curves anchored to the staff geometry.
-        val x  = marginLeft + 6 * dp
-        // The "curl" of the treble clef sits on the G line (2nd line from bottom = line index 1)
-        val gLineY = staffTop + 3 * lineSpacing   // G4 is the 2nd line (index 3 from top = index 1 from bottom)
-        val s  = lineSpacing
 
-        val path = Path()
+        val left = marginLeft
+        val top = staffTop - lineSpacing   // щоб красиво “заходив” на стан
 
-        // Vertical spine: from above staff down through curl
-        val spineX   = x + s * 0.55f
-        val spineTop = staffTop - s * 1.0f
-        val spineBot = staffTop + staffHeight + s * 0.55f
-
-        // 1. Spine (straight-ish descending line, slightly curved)
-        path.moveTo(spineX, spineTop)
-        path.cubicTo(
-            spineX + s * 0.12f, staffTop,
-            spineX + s * 0.12f, gLineY - s * 0.3f,
-            spineX,             gLineY + s * 0.1f
-        )
-        path.cubicTo(
-            spineX - s * 0.05f, gLineY + s * 0.5f,
-            spineX - s * 0.05f, spineBot - s * 0.2f,
-            spineX + s * 0.0f,  spineBot
+        val destRect = RectF(
+            left,
+            top,
+            left + clefWidth,
+            top + clefHeight
         )
 
-        // 2. Bottom curl
-        path.cubicTo(
-            spineX - s * 0.55f, spineBot + s * 0.25f,
-            spineX - s * 0.9f,  spineBot - s * 0.1f,
-            spineX - s * 0.5f,  spineBot - s * 0.55f
-        )
-        path.cubicTo(
-            spineX - s * 0.1f,  spineBot - s * 1.0f,
-            spineX + s * 0.4f,  spineBot - s * 0.9f,
-            spineX + s * 0.4f,  spineBot - s * 0.55f
-        )
-
-        // 3. Upper swirl around the G line
-        val swirlCX = spineX + s * 0.1f
-        val swirlCY = gLineY
-        path.moveTo(swirlCX + s * 0.6f, swirlCY)
-        path.cubicTo(
-            swirlCX + s * 0.6f, swirlCY - s * 0.7f,
-            swirlCX - s * 0.6f, swirlCY - s * 0.7f,
-            swirlCX - s * 0.5f, swirlCY
-        )
-        path.cubicTo(
-            swirlCX - s * 0.4f, swirlCY + s * 0.55f,
-            swirlCX + s * 0.5f, swirlCY + s * 0.45f,
-            swirlCX + s * 0.5f, swirlCY - s * 0.1f
-        )
-
-        val clefPaintDraw = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.BLACK
-            style = Paint.Style.STROKE
-            strokeWidth = lineSpacing * 0.22f
-            strokeCap = Paint.Cap.ROUND
-            strokeJoin = Paint.Join.ROUND
-        }
-        canvas.drawPath(path, clefPaintDraw)
+        canvas.drawBitmap(clefBitmap, null, destRect, null)
     }
 
     // ── 4/4 time signature ───────────────────────────────────────────────────
 
     private fun drawTimeSignature(canvas: Canvas) {
-        val cx = marginLeft + clefWidth + timeSigWidth / 2f
+        val cx = marginLeft + clefWidth + timeSigWidth / 4f
         val midStaff = staffTop + staffHeight / 2f
         canvas.drawText("4", cx, midStaff - lineSpacing * 0.05f, timeSigPaint)
         canvas.drawText("4", cx, midStaff + lineSpacing * 1.0f, timeSigPaint)
-    }
-
-    // ── Bar lines (every 4 beats, derived from note timing) ──────────────────
-
-    private fun drawBarlines(canvas: Canvas) {
-        // per-row barlines are drawn in drawNotes()
     }
 
     // ─── Note rendering ───────────────────────────────────────────────────────
@@ -282,18 +235,28 @@ class SheetMusicView @JvmOverloads constructor(
             drawTimeSignature(canvas)
 
             val totalDur = rowNotes.maxOf { it.endSec }.coerceAtLeast(0.001f)
-            rowNotes.forEach { note ->
-                val x = timeToX(note.startSec, totalDur)
+            val slotWeights = rowNotes.map { note ->
+                val (_, accidental) = midiToStaffStep(note.midi)
+                if (accidental != 0) 1.55f else 1f
+            }
+            val totalSlots = slotWeights.sum().coerceAtLeast(1f)
+            var consumedSlots = 0f
+
+            rowNotes.forEachIndexed { noteIndex, note ->
+                val currentWeight = slotWeights[noteIndex]
+                val slotCenter = consumedSlots + currentWeight / 2f
+                val xByIndex = noteAreaStart + (slotCenter / totalSlots) * noteAreaWidth
+                val xByTime = timeToX(note.startSec, totalDur)
+                val x = xByIndex * 0.8f + xByTime * 0.2f
                 drawNote(canvas, note, x)
+                consumedSlots += currentWeight
             }
 
-            val barDuration = 2.0f
-            var t = barDuration
-            while (t < totalDur) {
-                val x = timeToX(t, totalDur)
-                canvas.drawLine(x, staffTop, x, staffTop + staffHeight, barlinePaint)
-                t += barDuration
-            }
+//            val barsPerRow = 4
+//            for (bar in 1 until barsPerRow) {
+//                val x = noteAreaStart + (bar / barsPerRow.toFloat()) * noteAreaWidth
+//                canvas.drawLine(x, staffTop, x, staffTop + staffHeight, barlinePaint)
+//            }
         }
     }
 

@@ -12,6 +12,7 @@
         android:padding="12dp"
         android:text="File name"
         android:textAlignment="center"
+        android:fontFamily="@font/purple_purse"
         android:textColor="#FBF4F4"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -23,37 +24,36 @@
         android:id="@+id/toggleNotesView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Show notes"
-        android:textAlignment="center"
-        android:textColor="#FBF4F4"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        tools:layout_editor_absoluteX="235dp"
-        tools:layout_editor_absoluteY="3dp"/>
+        android:text="@string/show_sheet_music"
+        app:backgroundTint="@color/dark_brown"
+        android:textColor="@color/beige"
+        android:fontFamily="@font/purple_purse"
+        android:textSize="15sp"
+        android:layout_margin="3dp"
+        app:layout_constraintTop_toBottomOf="@id/fileNameText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <com.example.notesdetector.presentation.ui.views.TablatureView
         android:id="@+id/tabView"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/toggleNotesView"
         app:layout_constraintBottom_toTopOf="@id/playerControls"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/fileNameText"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <com.example.notesdetector.presentation.ui.views.SheetMusicView
         android:id="@+id/sheetMusicView"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/toggleNotesView"
         app:layout_constraintBottom_toTopOf="@id/playerControls"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/fileNameText"
-        app:layout_constraintVertical_bias="0.0"
-        android:visibility="gone"/>
-
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <LinearLayout
         android:id="@+id/playerControls"

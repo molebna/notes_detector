@@ -157,11 +157,11 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
         if (isTabMode) {
             tabView.visibility = View.VISIBLE
             sheetMusicView.visibility = View.GONE
-            toggleNotesView.text = "Show Notes"
+            toggleNotesView.text = getString(R.string.show_sheet_music)
         } else {
             tabView.visibility = View.GONE
             sheetMusicView.visibility = View.VISIBLE
-            toggleNotesView.text = "Show Tabs"
+            toggleNotesView.text = getString(R.string.show_tabs)
         }
     }
 }

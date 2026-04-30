@@ -33,4 +33,7 @@
     <string name="record_start_error">Could not start recording</string>
     <string name="recording_saved">Recording saved</string>
     <string name="no_recording_yet">Record audio first</string>
+    <string name="show_sheet_music">Show Sheet music</string>
+    <string name="show_tabs">Show Tabs</string>
+    <string name="my_notes">My notes</string>
 </resources>
