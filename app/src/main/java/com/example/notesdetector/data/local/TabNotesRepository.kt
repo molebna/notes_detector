@@ -1,6 +1,7 @@
 package com.example.notesdetector.data.local
 
 import android.content.Context
+import com.example.notesdetector.data.NoteEvent
 import com.example.notesdetector.data.NotesFile
 import com.example.notesdetector.data.TabNote
 import com.example.notesdetector.data.TabNoteEntity
@@ -10,8 +11,13 @@ class TabNotesRepository private constructor(context: Context) {
 
     private val dbHelper = TabNotesDatabaseHelper(context.applicationContext)
 
-    fun saveTabNotes(audioUri: String, audioName: String?, tabNotes: List<TabNote>): Long {
-        return dbHelper.saveTabNotes(audioUri, audioName, tabNotes)
+    fun saveTabNotes(
+        audioUri: String,
+        audioName: String?,
+        tabNotes: List<TabNote>,
+        noteEvents: List<NoteEvent>
+    ): Long {
+        return dbHelper.saveTabNotes(audioUri, audioName, tabNotes, noteEvents)
     }
 
     fun getLatestTabNotes(): TabNoteEntity? {

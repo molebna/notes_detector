@@ -5,5 +5,6 @@ data class TabNoteEntity(
     val audioUri: String,
     val audioName: String?,
     val tabNotes: List<TabNote>,
+    val noteEvents: List<NoteEvent>,
     val createdAt: Long
 )

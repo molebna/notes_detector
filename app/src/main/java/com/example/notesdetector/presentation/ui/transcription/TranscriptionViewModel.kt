@@ -42,7 +42,12 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
                     onSuccess = { noteEvents ->
                         val tabNotes = TabMapper.map(noteEvents)
                         val audioName = getFileNameFromUri(getApplication(), uri.toString())
-                        repository.saveTabNotes(uri.toString(), audioName, tabNotes)
+                        repository.saveTabNotes(
+                            audioUri = uri.toString(),
+                            audioName = audioName,
+                            tabNotes = tabNotes,
+                            noteEvents = noteEvents
+                        )
                         state.copy(
                             isLoading = false,
                             notes = noteEvents,
