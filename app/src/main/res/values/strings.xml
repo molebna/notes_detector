@@ -36,4 +36,9 @@
     <string name="show_sheet_music">Show Sheet music</string>
     <string name="show_tabs">Show Tabs</string>
     <string name="my_notes">My notes</string>
+    <string name="export_midi">Export to MIDI</string>
+    <string name="no_notes_to_export">No notes to export</string>
+    <string name="midi_export_success">MIDI exported: %1$s</string>
+    <string name="midi_export_failed">MIDI export failed: %1$s</string>
+    <string name="midi_export_cancelled">MIDI export cancelled</string>
 </resources>
