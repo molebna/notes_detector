@@ -41,4 +41,8 @@
     <string name="midi_export_success">MIDI exported: %1$s</string>
     <string name="midi_export_failed">MIDI export failed: %1$s</string>
     <string name="midi_export_cancelled">MIDI export cancelled</string>
+    <string name="playback_mode_original">Playback: Original</string>
+    <string name="playback_mode_transcribed">Playback: Transcribed</string>
+    <string name="toggle_playback_mode">Switch playback source</string>
+    <string name="no_playback_source">No playable source available</string>
 </resources>

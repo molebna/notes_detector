@@ -20,6 +20,7 @@ import com.example.notesdetector.presentation.ui.views.SheetMusicView
 import com.example.notesdetector.presentation.ui.views.TablatureView
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.IOException
 
 class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
 
@@ -30,8 +31,11 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
     private lateinit var tabView: TablatureView
     private lateinit var sheetMusicView: SheetMusicView
     private lateinit var fileNameText: android.widget.TextView
-    private var audioUri: String? = null
+    private var transcribedPlaybackUri: String? = null
+    private var originalAudioUri: String? = null
+    private var useTranscribedPlayback = true
     private var mediaPlayer: MediaPlayer? = null
+    private var playbackMidiFile: File? = null
     private var pendingMidiName: String = "transcription.mid"
 
     private lateinit var seekBar: SeekBar
@@ -39,6 +43,7 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
     private lateinit var pauseButton: Button
     private lateinit var stopButton: Button
     private lateinit var exportMidiButton: Button
+    private lateinit var togglePlaybackSourceButton: Button
 
     private lateinit var toggleNotesView: Button
 
@@ -82,12 +87,14 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
         stopButton = view.findViewById(R.id.stopButton)
         toggleNotesView = view.findViewById(R.id.toggleNotesView)
         exportMidiButton = view.findViewById(R.id.exportMidiButton)
+        togglePlaybackSourceButton = view.findViewById(R.id.togglePlaybackSourceButton)
 
         playButton.setOnClickListener { playAudio() }
         pauseButton.setOnClickListener { pauseAudio() }
         stopButton.setOnClickListener { stopAudio() }
         toggleNotesView.setOnClickListener { toggleNotesView() }
         exportMidiButton.setOnClickListener { exportMidi() }
+        togglePlaybackSourceButton.setOnClickListener { togglePlaybackSource() }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -110,7 +117,9 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
                     fileNameText.text = state.errorMessage ?: state.fileName
                     tabView.setNotes(state.tabNotes)
                     sheetMusicView.setNotes(state.noteEvents)
-                    audioUri = state.audioUri
+                    originalAudioUri = state.audioUri
+                    preparePlaybackSource(state)
+                    updatePlaybackModeUi()
                     exportMidiButton.isEnabled = state.noteEvents.isNotEmpty() && state.errorMessage == null
                 }
             }
@@ -119,7 +128,7 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
 
     override fun onStop() {
         super.onStop()
-        releasePlayer()
+        releaseMediaPlayer()
     }
 
     override fun onDestroyView() {
@@ -128,13 +137,23 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
         releasePlayer()
     }
 
-    private fun releasePlayer() {
+    private fun releaseMediaPlayer() {
         mediaPlayer?.release()
         mediaPlayer = null
     }
 
+    private fun releasePlayer() {
+        releaseMediaPlayer()
+        playbackMidiFile?.delete()
+        playbackMidiFile = null
+        transcribedPlaybackUri = null
+    }
+
     private fun playAudio() {
-        val uriValue = audioUri ?: return
+        val uriValue = activePlaybackUri() ?: run {
+            Toast.makeText(requireContext(), getString(R.string.no_playback_source), Toast.LENGTH_SHORT).show()
+            return
+        }
 
         if (mediaPlayer == null) {
             val mp = MediaPlayer.create(requireContext(), Uri.parse(uriValue))
@@ -180,6 +199,60 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
                 }
             }
         })
+    }
+
+
+    private fun preparePlaybackSource(state: NotesUiState) {
+        playbackMidiFile?.delete()
+        playbackMidiFile = null
+        transcribedPlaybackUri = null
+
+        if (state.noteEvents.isEmpty()) {
+            return
+        }
+
+        try {
+            val midiFile = viewModel.preparePlaybackMidiFile(requireContext().cacheDir)
+            playbackMidiFile = midiFile
+            transcribedPlaybackUri = Uri.fromFile(midiFile).toString()
+        } catch (exception: IOException) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.midi_export_failed, exception.message ?: "Unknown error"),
+                Toast.LENGTH_SHORT
+            ).show()
+        } catch (exception: IllegalStateException) {
+            // No notes available for playback.
+        }
+    }
+
+    private fun activePlaybackUri(): String? {
+        return if (useTranscribedPlayback) {
+            transcribedPlaybackUri ?: originalAudioUri
+        } else {
+            originalAudioUri ?: transcribedPlaybackUri
+        }
+    }
+
+    private fun togglePlaybackSource() {
+        useTranscribedPlayback = !useTranscribedPlayback
+        stopAudio()
+        releaseMediaPlayer()
+        updatePlaybackModeUi()
+    }
+
+    private fun updatePlaybackModeUi() {
+        useTranscribedPlayback = if (useTranscribedPlayback) {
+            transcribedPlaybackUri != null || originalAudioUri == null
+        } else {
+            originalAudioUri == null && transcribedPlaybackUri != null
+        }
+        togglePlaybackSourceButton.text = if (useTranscribedPlayback) {
+            getString(R.string.playback_mode_transcribed)
+        } else {
+            getString(R.string.playback_mode_original)
+        }
+        togglePlaybackSourceButton.isEnabled = transcribedPlaybackUri != null && originalAudioUri != null
     }
 
     private fun toggleNotesView() {
