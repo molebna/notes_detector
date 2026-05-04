@@ -9,6 +9,8 @@ import android.view.View
 import android.widget.Button
 import android.widget.SeekBar
 import android.widget.Toast
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -42,10 +44,7 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
     private lateinit var playButton: Button
     private lateinit var pauseButton: Button
     private lateinit var stopButton: Button
-    private lateinit var exportMidiButton: Button
-    private lateinit var togglePlaybackSourceButton: Button
-
-    private lateinit var toggleNotesView: Button
+    private var notesMenuProvider: MenuProvider? = null
 
     private val handler = Handler(Looper.getMainLooper())
 
@@ -85,16 +84,10 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
         playButton = view.findViewById(R.id.playButton)
         pauseButton = view.findViewById(R.id.pauseButton)
         stopButton = view.findViewById(R.id.stopButton)
-        toggleNotesView = view.findViewById(R.id.toggleNotesView)
-        exportMidiButton = view.findViewById(R.id.exportMidiButton)
-        togglePlaybackSourceButton = view.findViewById(R.id.togglePlaybackSourceButton)
-
         playButton.setOnClickListener { playAudio() }
         pauseButton.setOnClickListener { pauseAudio() }
         stopButton.setOnClickListener { stopAudio() }
-        toggleNotesView.setOnClickListener { toggleNotesView() }
-        exportMidiButton.setOnClickListener { exportMidi() }
-        togglePlaybackSourceButton.setOnClickListener { togglePlaybackSource() }
+        setupNotesMenu()
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -120,10 +113,59 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
                     originalAudioUri = state.audioUri
                     preparePlaybackSource(state)
                     updatePlaybackModeUi()
-                    exportMidiButton.isEnabled = state.noteEvents.isNotEmpty() && state.errorMessage == null
+                    requireActivity().invalidateOptionsMenu()
                 }
             }
         }
+    }
+
+    private fun setupNotesMenu() {
+        val menuHost: MenuHost = requireActivity()
+        val provider = object : MenuProvider {
+            override fun onCreateMenu(menu: android.view.Menu, menuInflater: android.view.MenuInflater) {
+                menuInflater.inflate(R.menu.notes_view_menu, menu)
+            }
+
+            override fun onPrepareMenu(menu: android.view.Menu) {
+                menu.findItem(R.id.action_toggle_notes_view)?.title = if (isTabMode) {
+                    getString(R.string.show_sheet_music)
+                } else {
+                    getString(R.string.show_tabs)
+                }
+
+                menu.findItem(R.id.action_export_midi)?.isEnabled =
+                    viewModel.uiState.value.noteEvents.isNotEmpty() && viewModel.uiState.value.errorMessage == null
+
+                val playbackItem = menu.findItem(R.id.action_toggle_playback_source)
+                playbackItem?.title = if (useTranscribedPlayback) {
+                    getString(R.string.playback_mode_transcribed)
+                } else {
+                    getString(R.string.playback_mode_original)
+                }
+                playbackItem?.isEnabled = transcribedPlaybackUri != null && originalAudioUri != null
+            }
+
+            override fun onMenuItemSelected(menuItem: android.view.MenuItem): Boolean {
+                return when (menuItem.itemId) {
+                    R.id.action_toggle_notes_view -> {
+                        toggleNotesView()
+                        true
+                    }
+                    R.id.action_export_midi -> {
+                        exportMidi()
+                        true
+                    }
+                    R.id.action_toggle_playback_source -> {
+                        togglePlaybackSource()
+                        true
+                    }
+                    else -> false
+                }
+            }
+        }
+
+        notesMenuProvider = provider
+        menuHost.addMenuProvider(provider, viewLifecycleOwner, Lifecycle.State.RESUMED)
     }
 
     override fun onStop() {
@@ -247,12 +289,7 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
         } else {
             originalAudioUri == null && transcribedPlaybackUri != null
         }
-        togglePlaybackSourceButton.text = if (useTranscribedPlayback) {
-            getString(R.string.playback_mode_transcribed)
-        } else {
-            getString(R.string.playback_mode_original)
-        }
-        togglePlaybackSourceButton.isEnabled = transcribedPlaybackUri != null && originalAudioUri != null
+        requireActivity().invalidateOptionsMenu()
     }
 
     private fun toggleNotesView() {
@@ -262,12 +299,11 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
         if (isTabMode) {
             tabView.visibility = View.VISIBLE
             sheetMusicView.visibility = View.GONE
-            toggleNotesView.text = getString(R.string.show_sheet_music)
         } else {
             tabView.visibility = View.GONE
             sheetMusicView.visibility = View.VISIBLE
-            toggleNotesView.text = getString(R.string.show_tabs)
         }
+        requireActivity().invalidateOptionsMenu()
     }
 
     private fun exportMidi() {
