@@ -48,12 +48,26 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
+    <Button
+        android:id="@+id/togglePlaybackSourceButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/playback_mode_transcribed"
+        app:backgroundTint="@color/dark_brown"
+        android:textColor="@color/beige"
+        android:fontFamily="@font/purple_purse"
+        android:textSize="14sp"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@id/exportMidiButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
     <com.example.notesdetector.presentation.ui.views.TablatureView
         android:id="@+id/tabView"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="12dp"
-        app:layout_constraintTop_toBottomOf="@id/exportMidiButton"
+        app:layout_constraintTop_toBottomOf="@id/togglePlaybackSourceButton"
         app:layout_constraintBottom_toTopOf="@id/playerControls"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -64,7 +78,7 @@
         android:layout_height="0dp"
         android:layout_marginTop="12dp"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/exportMidiButton"
+        app:layout_constraintTop_toBottomOf="@id/togglePlaybackSourceButton"
         app:layout_constraintBottom_toTopOf="@id/playerControls"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

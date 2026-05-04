@@ -18,6 +18,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
 import java.nio.ByteBuffer
+import java.util.UUID
 
 class NotesViewModel(
     application: Application,
@@ -109,6 +110,22 @@ class NotesViewModel(
                 )
             }
         }
+    }
+
+
+    @Throws(IOException::class)
+    fun preparePlaybackMidiFile(cacheDir: File): File {
+        val events = uiState.value.noteEvents
+        if (events.isEmpty()) {
+            throw IllegalStateException("No notes available")
+        }
+
+        val file = File(cacheDir, "playback-${UUID.randomUUID()}.mid")
+        FileOutputStream(file).use { output ->
+            output.write(buildMidiFile(events))
+            output.flush()
+        }
+        return file
     }
 
     @Throws(IOException::class)
