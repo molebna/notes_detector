@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_toggle_notes_view"
+        android:title="@string/show_sheet_music"
+        android:showAsAction="never" />
+    <item
+        android:id="@+id/action_export_midi"
+        android:title="@string/export_midi"
+        android:showAsAction="never" />
+    <item
+        android:id="@+id/action_toggle_playback_source"
+        android:title="@string/playback_mode_transcribed"
+        android:showAsAction="never" />
+</menu>
