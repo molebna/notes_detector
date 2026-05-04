@@ -40,4 +40,5 @@
     <string name="no_notes_to_export">No notes to export</string>
     <string name="midi_export_success">MIDI exported: %1$s</string>
     <string name="midi_export_failed">MIDI export failed: %1$s</string>
+    <string name="midi_export_cancelled">MIDI export cancelled</string>
 </resources>

@@ -3,13 +3,13 @@ package com.example.notesdetector.presentation.ui.notesview
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.widget.Button
 import android.widget.SeekBar
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -32,6 +32,7 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
     private lateinit var fileNameText: android.widget.TextView
     private var audioUri: String? = null
     private var mediaPlayer: MediaPlayer? = null
+    private var pendingMidiName: String = "transcription.mid"
 
     private lateinit var seekBar: SeekBar
     private lateinit var playButton: Button
@@ -42,6 +43,31 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
     private lateinit var toggleNotesView: Button
 
     private val handler = Handler(Looper.getMainLooper())
+
+    private val exportMidiLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("audio/midi")) { uri ->
+        if (uri == null) {
+            Toast.makeText(requireContext(), R.string.midi_export_cancelled, Toast.LENGTH_SHORT).show()
+            return@registerForActivityResult
+        }
+
+        runCatching {
+            requireContext().contentResolver.openOutputStream(uri)?.use { output ->
+                viewModel.exportToMidi(output)
+            } ?: error("Could not open destination")
+        }.onSuccess {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.midi_export_success, uri.toString()),
+                Toast.LENGTH_LONG
+            ).show()
+        }.onFailure {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.midi_export_failed, it.message ?: "Unknown error"),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -178,26 +204,9 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
             return
         }
 
-        runCatching {
-            val downloadsDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-                ?: requireContext().filesDir
-            val safeName = state.fileName.substringBeforeLast('.').ifBlank { "transcription" }
-                .replace(Regex("[^a-zA-Z0-9._-]"), "_")
-            val outputFile = File(downloadsDir, "${safeName}.mid")
-            viewModel.exportToMidi(outputFile)
-            outputFile
-        }.onSuccess { file ->
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.midi_export_success, file.absolutePath),
-                Toast.LENGTH_LONG
-            ).show()
-        }.onFailure {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.midi_export_failed, it.message ?: "Unknown error"),
-                Toast.LENGTH_LONG
-            ).show()
-        }
+        val safeName = state.fileName.substringBeforeLast('.').ifBlank { "transcription" }
+            .replace(Regex("[^a-zA-Z0-9._-]"), "_")
+        pendingMidiName = "${safeName}.mid"
+        exportMidiLauncher.launch(pendingMidiName)
     }
 }

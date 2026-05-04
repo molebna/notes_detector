@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.OutputStream
 import java.nio.ByteBuffer
 
 class NotesViewModel(
@@ -111,6 +112,19 @@ class NotesViewModel(
     }
 
     @Throws(IOException::class)
+    fun exportToMidi(outputStream: OutputStream) {
+        val events = uiState.value.noteEvents
+        if (events.isEmpty()) {
+            throw IllegalStateException("No notes available")
+        }
+
+        outputStream.use {
+            it.write(buildMidiFile(events))
+            it.flush()
+        }
+    }
+
+    @Throws(IOException::class)
     fun exportToMidi(file: File) {
         val events = uiState.value.noteEvents
         if (events.isEmpty()) {
@@ -118,8 +132,7 @@ class NotesViewModel(
         }
 
         FileOutputStream(file).use { output ->
-            output.write(buildMidiFile(events))
-            output.flush()
+            exportToMidi(output)
         }
     }
 
