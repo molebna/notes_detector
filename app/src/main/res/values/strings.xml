@@ -46,4 +46,6 @@
     <string name="toggle_playback_mode">Switch playback source</string>
     <string name="no_playback_source">No playable source available</string>
     <string name="transcription_progress">Transcribing… %1$d%%</string>
+    <string name="time_signature_label">Time signature</string>
+    <string name="time_signature_hint">e.g. 4/4</string>
 </resources>

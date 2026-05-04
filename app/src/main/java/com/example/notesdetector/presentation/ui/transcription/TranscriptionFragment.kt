@@ -16,6 +16,7 @@ import com.example.notesdetector.databinding.FragmentTranscriptionBinding
 import kotlinx.coroutines.launch
 import androidx.navigation.NavOptions
 import com.example.notesdetector.data.utils.FileUtils.getFileNameFromUri
+import androidx.core.widget.doAfterTextChanged
 
 class TranscriptionFragment : Fragment() {
 
@@ -41,6 +42,10 @@ class TranscriptionFragment : Fragment() {
                 viewModel.setAudioUri(uri)
             }
 
+        binding.timeSignatureInput.doAfterTextChanged {
+            viewModel.updateTimeSignature(it?.toString().orEmpty())
+        }
+
         binding.retryButton.setOnClickListener {
             viewModel.transcribeSelectedAudio()
         }
@@ -57,6 +62,10 @@ class TranscriptionFragment : Fragment() {
                     binding.progressText.isVisible = state.isLoading
                     binding.progressText.text = getString(R.string.transcription_progress, state.progressPercent)
                     binding.transcribeButton.isEnabled = !state.isLoading && state.selectedAudioUri != null
+                    if (binding.timeSignatureInput.text.toString() != state.timeSignature) {
+                        binding.timeSignatureInput.setText(state.timeSignature)
+                        binding.timeSignatureInput.setSelection(state.timeSignature.length)
+                    }
                     binding.selectedAudioText.text = context?.let { getFileNameFromUri(it, state.selectedAudioUri) }
                         ?: "No audio selected"
 

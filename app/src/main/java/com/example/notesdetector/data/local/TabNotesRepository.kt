@@ -15,9 +15,10 @@ class TabNotesRepository private constructor(context: Context) {
         audioUri: String,
         audioName: String?,
         tabNotes: List<TabNote>,
-        noteEvents: List<NoteEvent>
+        noteEvents: List<NoteEvent>,
+        timeSignature: String
     ): Long {
-        return dbHelper.saveTabNotes(audioUri, audioName, tabNotes, noteEvents)
+        return dbHelper.saveTabNotes(audioUri, audioName, tabNotes, noteEvents, timeSignature)
     }
 
     fun getLatestTabNotes(): NoteEntity? {

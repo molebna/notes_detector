@@ -22,6 +22,7 @@ class TabNotesDatabaseHelper(context: Context) :
                 $COLUMN_AUDIO_NAME TEXT,
                 $COLUMN_TAB_NOTES TEXT NOT NULL,
                 $COLUMN_NOTE_EVENTS TEXT,
+                $COLUMN_TIME_SIGNATURE TEXT NOT NULL DEFAULT "4/4",
                 $COLUMN_CREATED_AT INTEGER NOT NULL
             )
             """.trimIndent()
@@ -45,19 +46,27 @@ class TabNotesDatabaseHelper(context: Context) :
                 """.trimIndent()
             )
         }
+        if (oldVersion < 4) {
+            db.execSQL("""
+                ALTER TABLE $TABLE_TAB_TRANSCRIPTIONS
+                ADD COLUMN $COLUMN_TIME_SIGNATURE TEXT NOT NULL DEFAULT '4/4'
+                """.trimIndent())
+        }
     }
 
     fun saveTabNotes(
         audioUri: String,
         audioName: String?,
         tabNotes: List<TabNote>,
-        noteEvents: List<NoteEvent>
+        noteEvents: List<NoteEvent>,
+        timeSignature: String
     ): Long {
         val values = ContentValues().apply {
             put(COLUMN_AUDIO_URI, audioUri)
             put(COLUMN_AUDIO_NAME, audioName)
             put(COLUMN_TAB_NOTES, tabNotes.toJson())
             put(COLUMN_NOTE_EVENTS, noteEvents.toJson())
+            put(COLUMN_TIME_SIGNATURE, timeSignature)
             put(COLUMN_CREATED_AT, System.currentTimeMillis())
         }
         return writableDatabase.insert(TABLE_TAB_TRANSCRIPTIONS, null, values)
@@ -81,6 +90,7 @@ class TabNotesDatabaseHelper(context: Context) :
                 id = it.getLong(it.getColumnIndexOrThrow(COLUMN_ID)),
                 audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
                 audioName = it.getStringOrNull(COLUMN_AUDIO_NAME),
+                timeSignature = it.getStringOrNull(COLUMN_TIME_SIGNATURE) ?: "4/4",
                 tabNotes = it.getString(it.getColumnIndexOrThrow(COLUMN_TAB_NOTES)).toTabNotes(),
                 noteEvents = it.getStringOrNull(COLUMN_NOTE_EVENTS)?.toNoteEvents().orEmpty(),
                 createdAt = it.getLong(it.getColumnIndexOrThrow(COLUMN_CREATED_AT))
@@ -108,6 +118,7 @@ class TabNotesDatabaseHelper(context: Context) :
                         id = it.getLong(it.getColumnIndexOrThrow(COLUMN_ID)),
                         audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
                         audioName = it.getStringOrNull(COLUMN_AUDIO_NAME),
+                        timeSignature = it.getStringOrNull(COLUMN_TIME_SIGNATURE) ?: "4/4",
                         tabNotes = it.getString(it.getColumnIndexOrThrow(COLUMN_TAB_NOTES)).toTabNotes(),
                         noteEvents = it.getStringOrNull(COLUMN_NOTE_EVENTS)?.toNoteEvents().orEmpty(),
                         createdAt = it.getLong(it.getColumnIndexOrThrow(COLUMN_CREATED_AT))
@@ -140,6 +151,7 @@ class TabNotesDatabaseHelper(context: Context) :
                 id = it.getLong(it.getColumnIndexOrThrow(COLUMN_ID)),
                 audioUri = it.getString(it.getColumnIndexOrThrow(COLUMN_AUDIO_URI)),
                 audioName = it.getStringOrNull(COLUMN_AUDIO_NAME),
+                timeSignature = it.getStringOrNull(COLUMN_TIME_SIGNATURE) ?: "4/4",
                 tabNotes = it.getString(it.getColumnIndexOrThrow(COLUMN_TAB_NOTES)).toTabNotes(),
                 noteEvents = it.getStringOrNull(COLUMN_NOTE_EVENTS)?.toNoteEvents().orEmpty(),
                 createdAt = it.getLong(it.getColumnIndexOrThrow(COLUMN_CREATED_AT))
@@ -246,12 +258,13 @@ class TabNotesDatabaseHelper(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "tab_notes.db"
-        private const val DATABASE_VERSION = 3
+        private const val DATABASE_VERSION = 4
 
         private const val TABLE_TAB_TRANSCRIPTIONS = "tab_transcriptions"
         private const val COLUMN_ID = "id"
         private const val COLUMN_AUDIO_URI = "audio_uri"
         private const val COLUMN_AUDIO_NAME = "audio_name"
+        private const val COLUMN_TIME_SIGNATURE = "time_signature"
         private const val COLUMN_TAB_NOTES = "tab_notes"
         private const val COLUMN_NOTE_EVENTS = "note_events"
         private const val COLUMN_CREATED_AT = "created_at"

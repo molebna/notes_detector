@@ -109,6 +109,7 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
                 viewModel.uiState.collect { state ->
                     fileNameText.text = state.errorMessage ?: state.fileName
                     tabView.setNotes(state.tabNotes)
+                    sheetMusicView.setTimeSignature(state.timeSignature)
                     sheetMusicView.setNotes(state.noteEvents)
                     originalAudioUri = state.audioUri
                     preparePlaybackSource(state)

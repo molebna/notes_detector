@@ -57,6 +57,7 @@ class NotesViewModel(
                                 tabNotes = entity.tabNotes,
                                 noteEvents = entity.noteEvents,
                                 audioUri = entity.audioUri,
+                                timeSignature = entity.timeSignature,
                                 fileName = entity.audioName
                                     ?: getFileNameFromUri(context = getApplication(), filePath = entity.audioUri)
                             )
@@ -93,6 +94,7 @@ class NotesViewModel(
                                 tabNotes = entity.tabNotes,
                                 noteEvents = entity.noteEvents,
                                 audioUri = entity.audioUri,
+                                timeSignature = entity.timeSignature,
                                 fileName = entity.audioName
                                     ?: getFileNameFromUri(
                                         context = getApplication(),
@@ -155,7 +157,7 @@ class NotesViewModel(
 
     private fun buildMidiFile(notes: List<NoteEvent>): ByteArray {
         val ticksPerQuarter = 480
-        val tempoBpm = 120
+        val tempoBpm = 10
         val microPerQuarter = 60_000_000 / tempoBpm
         val ticksPerSecond = ticksPerQuarter * tempoBpm / 60f
 

@@ -8,6 +8,7 @@ data class TranscriptionUiState(
     val progressPercent: Int = 0,
     val errorMessage: String? = null,
     val selectedAudioUri: String? = null,
+    val timeSignature: String = "4/4",
     val navigateToResult: Boolean = false,
     val notes: List<NoteEvent> = emptyList(),
     val tabNotes: List<TabNote> = emptyList(),

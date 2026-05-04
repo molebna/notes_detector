@@ -18,6 +18,12 @@ class SheetMusicView @JvmOverloads constructor(
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
+    fun setTimeSignature(signature: String) {
+        if (timeSignature == signature) return
+        timeSignature = signature
+        invalidate()
+    }
+
     fun setNotes(notes: List<NoteEvent>) {
         this.notes = notes.sortedBy { it.startSec }
         requestLayout()
@@ -52,6 +58,7 @@ class SheetMusicView @JvmOverloads constructor(
     // ─── State ───────────────────────────────────────────────────────────────
 
     private var notes: List<NoteEvent> = emptyList()
+    private var timeSignature: String = "4/4"
 
     // ─── Paints ──────────────────────────────────────────────────────────────
 
@@ -224,8 +231,11 @@ class SheetMusicView @JvmOverloads constructor(
     private fun drawTimeSignature(canvas: Canvas) {
         val cx = marginLeft + clefWidth + timeSigWidth / 4f
         val midStaff = staffTop + staffHeight / 2f
-        canvas.drawText("4", cx, midStaff - lineSpacing * 0.05f, timeSigPaint)
-        canvas.drawText("4", cx, midStaff + lineSpacing * 1.0f, timeSigPaint)
+        val parts = timeSignature.split("/")
+        val top = parts.getOrNull(0) ?: "4"
+        val bottom = parts.getOrNull(1) ?: "4"
+        canvas.drawText(top, cx, midStaff - lineSpacing * 0.05f, timeSigPaint)
+        canvas.drawText(bottom, cx, midStaff + lineSpacing * 1.0f, timeSigPaint)
     }
 
     // ─── Note rendering ───────────────────────────────────────────────────────

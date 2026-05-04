@@ -32,12 +32,23 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
         _uiState.update { it.copy(selectedAudioUri = uri, errorMessage = null, navigateToResult = false) }
     }
 
-    fun transcribeSelectedAudio() {
-        val uri = _uiState.value.selectedAudioUri ?: return
-        transcribe(Uri.parse(uri))
+    fun updateTimeSignature(value: String) {
+        _uiState.update { it.copy(timeSignature = value, errorMessage = null) }
     }
 
-    private fun transcribe(uri: Uri) {
+    fun transcribeSelectedAudio() {
+        val state = _uiState.value
+        val uri = state.selectedAudioUri ?: return
+        val normalizedTimeSignature = state.timeSignature.trim()
+        val isValidTimeSignature = Regex("^\\d+\\/\\d+$").matches(normalizedTimeSignature)
+        if (!isValidTimeSignature) {
+            _uiState.update { it.copy(errorMessage = "Enter a valid time signature, e.g. 4/4") }
+            return
+        }
+        transcribe(Uri.parse(uri), normalizedTimeSignature)
+    }
+
+    private fun transcribe(uri: Uri, timeSignature: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, progressPercent = 0, errorMessage = null, navigateToResult = false) }
             startProgressUpdates()
@@ -51,7 +62,8 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
                             audioUri = uri.toString(),
                             audioName = audioName,
                             tabNotes = tabNotes,
-                            noteEvents = noteEvents
+                            noteEvents = noteEvents,
+                            timeSignature = timeSignature
                         )
                         progressJob?.cancel()
                         state.copy(
