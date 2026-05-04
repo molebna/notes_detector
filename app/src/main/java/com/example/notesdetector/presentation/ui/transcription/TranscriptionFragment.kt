@@ -53,6 +53,9 @@ class TranscriptionFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     binding.progressBar.isVisible = state.isLoading
+                    binding.progressBar.progress = state.progressPercent
+                    binding.progressText.isVisible = state.isLoading
+                    binding.progressText.text = getString(R.string.transcription_progress, state.progressPercent)
                     binding.transcribeButton.isEnabled = !state.isLoading && state.selectedAudioUri != null
                     binding.selectedAudioText.text = context?.let { getFileNameFromUri(it, state.selectedAudioUri) }
                         ?: "No audio selected"
