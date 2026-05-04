@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class TranscriptionViewModel(application: Application) : AndroidViewModel(application) {
@@ -22,6 +25,7 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
 
     private val _uiState = MutableStateFlow(TranscriptionUiState())
     val uiState: StateFlow<TranscriptionUiState> = _uiState.asStateFlow()
+    private var progressJob: Job? = null
 
     fun setAudioUri(uri: String) {
         if (_uiState.value.selectedAudioUri == uri) return
@@ -35,7 +39,8 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
 
     private fun transcribe(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, navigateToResult = false) }
+            _uiState.update { it.copy(isLoading = true, progressPercent = 0, errorMessage = null, navigateToResult = false) }
+            startProgressUpdates()
             val result = runCatching { transcriber.transcribe(uri) }
             _uiState.update { state ->
                 result.fold(
@@ -48,20 +53,37 @@ class TranscriptionViewModel(application: Application) : AndroidViewModel(applic
                             tabNotes = tabNotes,
                             noteEvents = noteEvents
                         )
+                        progressJob?.cancel()
                         state.copy(
                             isLoading = false,
+                            progressPercent = 100,
                             notes = noteEvents,
                             tabNotes = tabNotes,
                             navigateToResult = true
                         )
                     },
                     onFailure = {
+                        progressJob?.cancel()
                         state.copy(
                             isLoading = false,
+                            progressPercent = 0,
                             errorMessage = it.message ?: "Transcription failed"
                         )
                     }
                 )
+            }
+        }
+    }
+
+    private fun startProgressUpdates() {
+        progressJob?.cancel()
+        progressJob = viewModelScope.launch {
+            while (isActive && _uiState.value.isLoading) {
+                delay(250L)
+                _uiState.update { state ->
+                    val next = (state.progressPercent + 3).coerceAtMost(95)
+                    state.copy(progressPercent = next)
+                }
             }
         }
     }

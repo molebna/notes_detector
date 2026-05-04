@@ -42,10 +42,22 @@
 
         <ProgressBar
             android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:max="100"
+            android:progress="0"
             android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/progressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/beige"
+            android:visibility="gone"
+            tools:text="Transcribing… 42%" />
 
         <TextView
             android:id="@+id/errorText"
