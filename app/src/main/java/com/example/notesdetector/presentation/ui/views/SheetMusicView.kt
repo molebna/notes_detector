@@ -233,23 +233,30 @@ class SheetMusicView @JvmOverloads constructor(
     private fun drawNotes(canvas: Canvas) {
         if (notes.isEmpty()) return
 
-        val rows = notes.chunked(max(1, ceil(notes.size / rowCount.toFloat()).toInt()))
-        rows.forEachIndexed { rowIndex, rowNotes ->
+        val noteGroups = groupNotesByStartTime(notes)
+        val groupsPerRow = max(1, ceil(noteGroups.size / rowCount.toFloat()).toInt())
+        val rows = noteGroups.chunked(groupsPerRow)
+
+        rows.forEachIndexed { rowIndex, rowGroups ->
             val rowTop = rowIndex * rowHeight + 24 * dp
             staffTop = rowTop
             drawStaff(canvas)
             drawClef(canvas)
             drawTimeSignature(canvas)
 
-            val slotWeights = rowNotes.map { noteSlotWeight(it) }
+            val slotWeights = rowGroups.map { group ->
+                group.maxOf { noteSlotWeight(it) }
+            }
             val totalWeight = slotWeights.sum().coerceAtLeast(1f)
             var consumedWeight = 0f
 
-            rowNotes.forEachIndexed { noteIndex, note ->
-                val centerWeight = consumedWeight + slotWeights[noteIndex] / 2f
+            rowGroups.forEachIndexed { groupIndex, group ->
+                val centerWeight = consumedWeight + slotWeights[groupIndex] / 2f
                 val x = noteAreaStart + (centerWeight / totalWeight) * noteAreaWidth
-                drawNote(canvas, note, x)
-                consumedWeight += slotWeights[noteIndex]
+                group.forEach { note ->
+                    drawNote(canvas, note, x)
+                }
+                consumedWeight += slotWeights[groupIndex]
             }
 
 //            val barsPerRow = 4
@@ -258,6 +265,31 @@ class SheetMusicView @JvmOverloads constructor(
 //                canvas.drawLine(x, staffTop, x, staffTop + staffHeight, barlinePaint)
 //            }
         }
+    }
+
+    private fun groupNotesByStartTime(sortedNotes: List<NoteEvent>): List<List<NoteEvent>> {
+        if (sortedNotes.isEmpty()) return emptyList()
+
+        val groups = mutableListOf<MutableList<NoteEvent>>()
+        val sameMomentThresholdSec = 0.05f
+
+        for (note in sortedNotes) {
+            val currentGroup = groups.lastOrNull()
+            if (currentGroup == null) {
+                groups.add(mutableListOf(note))
+                continue
+            }
+
+            val groupStart = currentGroup.first().startSec
+            val isSameMoment = note.startSec - groupStart <= sameMomentThresholdSec
+            if (isSameMoment) {
+                currentGroup.add(note)
+            } else {
+                groups.add(mutableListOf(note))
+            }
+        }
+
+        return groups
     }
 
     private fun noteSlotWeight(note: NoteEvent): Float {
