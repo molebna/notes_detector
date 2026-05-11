@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notesdetector.data.NotesFile
-import com.example.notesdetector.data.local.TabNotesRepository
+import com.example.notesdetector.data.local.NotesRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = TabNotesRepository.getInstance(application)
+    private val repository = NotesRepository.getInstance(application)
 
     private val _notes = MutableStateFlow<List<NotesFile>>(emptyList())
     val notes: StateFlow<List<NotesFile>> = _notes

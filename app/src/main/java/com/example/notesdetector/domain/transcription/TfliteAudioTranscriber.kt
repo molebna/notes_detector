@@ -22,7 +22,7 @@ import com.example.notesdetector.data.NoteEvent
 
 class TfliteAudioTranscriber(
     private val context: Context,
-    private val modelAssetPath: String = "guitar_model.tflite"
+    private val modelAssetPath: String = "guitar_model_final.tflite"
 ) {
 
     companion object {
@@ -31,14 +31,14 @@ class TfliteAudioTranscriber(
         private const val SEGMENT_W = 128
         private const val NUM_NOTES = 49
         private const val MIN_MIDI = 40
-        private const val ONSET_THRESHOLD = 0.6f
-        private const val FRAME_THRESHOLD = 0.2f
+        private const val ONSET_THRESHOLD = 0.5f//0.6
+        private const val FRAME_THRESHOLD = 0.2f//0.2
         private const val N_BINS = 84
         private const val BINS_PER_OCTAVE = 12
         private const val FMIN = 32.70319566
         private const val N_FFT = 4096
-        private const val MERGE_GAP_SECONDS = 0.5f
-        private const val SEPARATE_NOTE_PEAK_THRESHOLD = 0.9f
+        private const val MERGE_GAP_SECONDS = 0.3f
+        private const val SEPARATE_NOTE_PEAK_THRESHOLD = 0.3f //0.9
     }
 
     suspend fun transcribe(audioUri: Uri): List<NoteEvent> {

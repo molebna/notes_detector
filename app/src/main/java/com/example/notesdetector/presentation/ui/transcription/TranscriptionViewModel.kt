@@ -4,7 +4,7 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.notesdetector.data.local.TabNotesRepository
+import com.example.notesdetector.data.local.NotesRepository
 import com.example.notesdetector.data.utils.FileUtils.getFileNameFromUri
 import com.example.notesdetector.domain.transcription.TabMapper
 import com.example.notesdetector.domain.transcription.TfliteAudioTranscriber
@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 class TranscriptionViewModel(application: Application) : AndroidViewModel(application) {
 
     private val transcriber = TfliteAudioTranscriber(application.applicationContext)
-    private val repository = TabNotesRepository.getInstance(application.applicationContext)
+    private val repository = NotesRepository.getInstance(application.applicationContext)
 
     private val _uiState = MutableStateFlow(TranscriptionUiState())
     val uiState: StateFlow<TranscriptionUiState> = _uiState.asStateFlow()
