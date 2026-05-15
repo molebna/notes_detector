@@ -1,12 +1,12 @@
 package com.example.notesdetector.presentation.ui.home
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
+import androidx.core.widget.doAfterTextChanged
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -14,11 +14,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.core.os.bundleOf
+import androidx.core.view.MenuProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.view.MenuHost
 import com.example.notesdetector.R
 import com.example.notesdetector.data.NotesFile
 import com.example.notesdetector.presentation.adapters.NoteFileAdapter
+import com.example.notesdetector.data.utils.FileUtils.getFileNameFromUri
 import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment(R.layout.fragment_home) {
@@ -26,11 +29,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private val viewModel: HomeViewModel by viewModels()
 
     private lateinit var adapter: NoteFileAdapter
+    private var allNotes: List<NotesFile> = emptyList()
+    private lateinit var searchInput: EditText
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val recycler = view.findViewById<RecyclerView>(R.id.notesList)
+        val searchInputLayout = view.findViewById<View>(R.id.searchInputLayout)
+        searchInput = view.findViewById(R.id.searchInput)
 
         adapter = NoteFileAdapter(
             onClick = { note ->
@@ -46,17 +53,65 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         recycler.layoutManager = LinearLayoutManager(requireContext())
         recycler.adapter = adapter
 
+        searchInput.doAfterTextChanged { editable ->
+            filterAndDisplayNotes(editable?.toString().orEmpty())
+        }
+
+        setupToolbarMenu(searchInputLayout)
+
         observeNotes()
+    }
+
+    private fun setupToolbarMenu(searchInputLayout: View) {
+        val menuHost: MenuHost = requireActivity()
+        val provider = object : MenuProvider {
+            override fun onCreateMenu(menu: android.view.Menu, menuInflater: android.view.MenuInflater) = Unit
+
+            override fun onPrepareMenu(menu: android.view.Menu) {
+                menu.findItem(R.id.action_search_notes)?.isVisible = true
+            }
+
+            override fun onMenuItemSelected(menuItem: android.view.MenuItem): Boolean {
+                if (menuItem.itemId != R.id.action_search_notes) return false
+
+                val showSearch = !searchInputLayout.isVisible
+                searchInputLayout.isVisible = showSearch
+                if (showSearch) {
+                    searchInput.requestFocus()
+                } else {
+                    searchInput.setText("")
+                }
+                return true
+            }
+        }
+
+        menuHost.addMenuProvider(provider, viewLifecycleOwner, Lifecycle.State.RESUMED)
     }
 
     private fun observeNotes() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.notes.collect { notes ->
-                    adapter.submitList(notes)
+                    allNotes = notes
+                    val query = searchInput.text?.toString().orEmpty()
+                    filterAndDisplayNotes(query)
                 }
             }
         }
+    }
+
+    private fun filterAndDisplayNotes(query: String) {
+        val trimmedQuery = query.trim()
+        if (trimmedQuery.isEmpty()) {
+            adapter.submitList(allNotes)
+            return
+        }
+
+        val filtered = allNotes.filter { note ->
+            getFileNameFromUri(requireContext(), note.title)
+                .contains(trimmedQuery, ignoreCase = true)
+        }
+        adapter.submitList(filtered)
     }
 
     override fun onResume() {
