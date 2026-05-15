@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -32,7 +33,6 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
 
     private lateinit var tabView: TablatureView
     private lateinit var sheetMusicView: SheetMusicView
-    private lateinit var fileNameText: android.widget.TextView
     private var transcribedPlaybackUri: String? = null
     private var originalAudioUri: String? = null
     private var useTranscribedPlayback = true
@@ -76,7 +76,6 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        fileNameText = view.findViewById(R.id.fileNameText)
         tabView = view.findViewById(R.id.tabView)
         sheetMusicView = view.findViewById(R.id.sheetMusicView)
 
@@ -107,7 +106,7 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    fileNameText.text = state.errorMessage ?: state.fileName
+                    setAppBarTitle(state.errorMessage ?: state.fileName)
                     tabView.setNotes(state.tabNotes)
                     sheetMusicView.setTimeSignature(state.timeSignature)
                     sheetMusicView.setNotes(state.noteEvents)
@@ -169,6 +168,17 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
         menuHost.addMenuProvider(provider, viewLifecycleOwner, Lifecycle.State.RESUMED)
     }
 
+    override fun onResume() {
+        super.onResume()
+        val state = viewModel.uiState.value
+        setAppBarTitle(state.errorMessage ?: state.fileName)
+    }
+
+    private fun setAppBarTitle(title: String) {
+        requireActivity().title = title
+        (activity as? AppCompatActivity)?.supportActionBar?.title = title
+    }
+
     override fun onStop() {
         super.onStop()
         releaseMediaPlayer()
@@ -176,6 +186,7 @@ class NotesViewFragment : Fragment(R.layout.fragment_notes_view) {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        requireActivity().title = getString(R.string.app_name)
         handler.removeCallbacksAndMessages(null)
         releasePlayer()
     }
