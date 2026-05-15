@@ -38,7 +38,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -48,7 +47,6 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Permission is necessary", Toast.LENGTH_SHORT).show()
         }
     }
-
 
     private fun openTranscriptionWithAudio(audioUri: String) {
         val navController =
@@ -105,8 +103,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 .show()
         }
-        val drawerLayout: DrawerLayout = binding.drawerLayout
-        val navView: NavigationView = binding.navView
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         navController.addOnDestinationChangedListener { _, destination, _ ->
 
@@ -119,13 +115,8 @@ class MainActivity : AppCompatActivity() {
         }
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
-        appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow
-            ), drawerLayout
-        )
+        appBarConfiguration = AppBarConfiguration(setOf(R.id.nav_home))
         setupActionBarWithNavController(navController, appBarConfiguration)
-        navView.setupWithNavController(navController)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

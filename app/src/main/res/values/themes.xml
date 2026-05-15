@@ -27,4 +27,9 @@
     <style name="Theme.NotesDetector.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="Theme.NotesDetector.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+    <style name="TextAppearance.NotesDetector.ToolbarTitle" parent="TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:fontFamily">@font/purple_purse</item>
+        <item name="android:textSize">30sp</item>
+    </style>
 </resources>

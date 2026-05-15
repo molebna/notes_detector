@@ -11,12 +11,14 @@
         android:layout_height="wrap_content"
         android:theme="@style/Theme.NotesDetector.AppBarOverlay">
 
-        <androidx.appcompat.widget.Toolbar
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimaryVariant"
-            app:popupTheme="@style/Theme.NotesDetector.PopupOverlay" />
+            app:popupTheme="@style/Theme.NotesDetector.PopupOverlay"
+            app:titleCentered="true"
+            app:titleTextAppearance="@style/TextAppearance.NotesDetector.ToolbarTitle"/>
 
     </com.google.android.material.appbar.AppBarLayout>
 
