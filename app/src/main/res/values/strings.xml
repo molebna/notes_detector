@@ -48,4 +48,5 @@
     <string name="transcription_progress">Transcribing… %1$d%%</string>
     <string name="time_signature_label">Time signature</string>
     <string name="time_signature_hint">e.g. 4/4</string>
+    <string name="search_note_hint">Search by file name</string>
 </resources>

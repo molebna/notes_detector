@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
+import androidx.core.widget.doAfterTextChanged
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -19,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.notesdetector.R
 import com.example.notesdetector.data.NotesFile
 import com.example.notesdetector.presentation.adapters.NoteFileAdapter
+import com.example.notesdetector.data.utils.FileUtils.getFileNameFromUri
 import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment(R.layout.fragment_home) {
@@ -26,11 +28,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private val viewModel: HomeViewModel by viewModels()
 
     private lateinit var adapter: NoteFileAdapter
+    private var allNotes: List<NotesFile> = emptyList()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val recycler = view.findViewById<RecyclerView>(R.id.notesList)
+        val searchInput = view.findViewById<EditText>(R.id.searchInput)
 
         adapter = NoteFileAdapter(
             onClick = { note ->
@@ -46,6 +50,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         recycler.layoutManager = LinearLayoutManager(requireContext())
         recycler.adapter = adapter
 
+        searchInput.doAfterTextChanged { editable ->
+            filterAndDisplayNotes(editable?.toString().orEmpty())
+        }
+
         observeNotes()
     }
 
@@ -53,10 +61,26 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.notes.collect { notes ->
-                    adapter.submitList(notes)
+                    allNotes = notes
+                    val query = view?.findViewById<EditText>(R.id.searchInput)?.text?.toString().orEmpty()
+                    filterAndDisplayNotes(query)
                 }
             }
         }
+    }
+
+    private fun filterAndDisplayNotes(query: String) {
+        val trimmedQuery = query.trim()
+        if (trimmedQuery.isEmpty()) {
+            adapter.submitList(allNotes)
+            return
+        }
+
+        val filtered = allNotes.filter { note ->
+            getFileNameFromUri(requireContext(), note.title)
+                .contains(trimmedQuery, ignoreCase = true)
+        }
+        adapter.submitList(filtered)
     }
 
     override fun onResume() {
